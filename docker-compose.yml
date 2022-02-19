@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  elasticmq:
+    image: softwaremill/elasticmq-native
+    volumes:
+      - ./sqs-mock/elasticmq.conf:/opt/elasticmq.conf
+    restart: always
+    ports:
+      - "9324:9324"
+      - "9325:9325"
+
+  # graphite:
+  #   image: graphiteapp/graphite-statsd
+  #   volumes:
+  #     - graphite_data:/var/lib/graphite/whisper
+  #   restart: always
+  #   ports:
+  #     - "4040:80"
+  #     - "2003-2004:2003-2004"
+  #     - "2023-2024:2023-2024"
+  #     - "8125:8125/udp"
+  #     - "8126:8126"
+
+  # postgres:
+  #   image: arm64v8/postgres
+  #   volumes:
+  #     - ${PWD}/db:/docker-entrypoint-initdb.d
+  #     - postgres_data:/var/lib/postgresql/data
+  #   restart: always
+  #   environment:
+  #     - POSTGRES_PASSWORD=root
+  #   ports:
+  #     - "5432:5432"
+
+# volumes:
+#   grafana_data: {}
+#   graphite_data: {}
+#   postgres_data: {}
