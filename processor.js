@@ -1,4 +1,8 @@
-const ConsumerApp = require('./src/ConsumerApp');
+const ProcessorApp = require('./src/ProcessorApp');
 const config = require('./src/config');
 
-const Consumer = new ConsumerApp(config);
+try {
+    const processor = new ProcessorApp(config);
+} catch (err) {
+    console.log('Could not initialize ProcessorApp:', err);
+}
