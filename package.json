@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "npm run start:producer & npm run start:consumer",
     "start:producer": "node index.js",
     "start:consumer": "node processor.js",
     "test": "echo \"Error: no test specified\" && exit 1"
