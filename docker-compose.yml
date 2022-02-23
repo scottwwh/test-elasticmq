@@ -4,11 +4,27 @@ services:
   elasticmq:
     image: softwaremill/elasticmq-native
     volumes:
-      - ./sqs-mock/elasticmq.conf:/opt/elasticmq.conf
+      - ./elasticmq/elasticmq.conf:/opt/elasticmq.conf
     restart: always
     ports:
       - "9324:9324"
       - "9325:9325"
+    # networks:
+    #   - "app"
+
+  web:
+    # image: docker pull node:17.3.0-alpine
+    build: ./web/
+    restart: always
+    # ports:
+    #   - "80:80"
+    depends_on:
+      - "elasticmq"
+    # networks:
+    #   - "app"
+
+# networks:
+#   app:
 
   # graphite:
   #   image: graphiteapp/graphite-statsd

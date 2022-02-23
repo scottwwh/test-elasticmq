@@ -16,17 +16,19 @@ class ClientApp {
     }
 
     async init() {
+        console.log(this.config);
+
         this.queue = new SQS({
-            endpoint: 'http://localhost:9324', // TODO: Move into config
+            endpoint: this.config.QUEUE_BASE_URL,
             region: this.config.ZONE, // This does not matter
         });
           
         const queues = await this.queue.listQueues().promise();
         console.log(queues);
 
-        // Create simple producer
+        // // Create simple producer
         this.producer = Producer.create({
-            queueUrl: this.config.QUEUE_BASE_URL + this.config.QUEUE_REQUESTS,
+            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_REQUESTS,
             region: this.config.ZONE
         });
     }
@@ -36,6 +38,7 @@ class ClientApp {
         // Send a message to the queue with a specific ID (by default the body is used as the ID)
         const messages = [];
         const max = Math.floor(Math.random() * 10);
+        // const max = 1;
         for (var i = 0; i < max; i++) {
             const valid = Math.random() > 0.5 ? true : false ;
             const params = {
@@ -58,8 +61,8 @@ class ClientApp {
         await this.producer.send(messages);
 
         // Get the current size of the queue
-        const size = await this.producer.queueSize();
-        console.log(`There are currently ${size} messages on the queue.`);
+        // const size = await this.producer.queueSize();
+        // console.log(`There are currently ${size} messages on the queue.`);
     }
 }
 

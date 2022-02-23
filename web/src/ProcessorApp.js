@@ -10,7 +10,7 @@ class ProcessorApp {
         // });
 
         this.consumer = Consumer.create({
-            queueUrl: config.QUEUE_BASE_URL + config.QUEUE_REQUESTS,
+            queueUrl: config.QUEUE_FULL_URL + config.QUEUE_REQUESTS,
             handleMessage: message => { this.messageHandler(message) }
         });
           
