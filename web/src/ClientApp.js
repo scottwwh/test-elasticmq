@@ -37,13 +37,13 @@ class ClientApp {
         
         // Send a message to the queue with a specific ID (by default the body is used as the ID)
         const messages = [];
-        const max = Math.floor(Math.random() * 10);
+        const max = Math.floor(Math.random() * 10) + 1;
         // const max = 1;
         for (var i = 0; i < max; i++) {
             const valid = Math.random() > 0.5 ? true : false ;
             const params = {
                 id: 'message' + i, // Assume this could be a rootId?
-                body: 'Cheese Danish #' + i,
+                body: `${i}`,
 
                 // Throws an exception?
                 // messageAttributes: {

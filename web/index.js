@@ -1,11 +1,43 @@
+
+// SQS
 const config = require('./src/config');
 const ClientApp = require('./src/ClientApp');
+const client = new ClientApp(config);
+
+// App
+const fs = require('fs');
+const Koa = require('koa');
+const serve = require('koa-static')
+const router = require('@koa/router')();
+const app = new Koa();
+app.use(serve('./swap'));
+
+router.get('/', list)
+  .get('/api/notification', notification)
+
+// Responses
+async function list(ctx) {
+  ctx.response.type = 'html';
+  ctx.response.body = fs.readFileSync('./src/index.html');
+};
+
+async function notification(ctx) {
+  try {
+    await client.sendMessages();
+    ctx.response.body = "ACK";
+  } catch (err) {
+    console.log(err);
+    ctx.response.body = "NOK";
+  }
+};
+
+app.use(router.routes());
+app.listen(3000);
+
 
 (async () => {
   try {
-    const client = new ClientApp(config);
     await client.init();
-    client.sendMessages();
   } catch (err) {
     console.log('Could not initialize ClientApp:', err);
   }

@@ -1,0 +1,92 @@
+<html>
+    <head>
+        <title>Hello world</title>
+        <style type="text/css" media="screen">
+
+ul {
+    margin: 0;
+    padding: 0;
+}
+
+ul li {
+    display: inline-block;
+    padding: 2rem;
+    margin: 1rem;
+    background-color: #eee;
+    border-radius: 0.5rem;
+    position: relative;
+}
+
+ul li:before {
+    content: attr(user-notifications);
+    background-color: orange;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 1.5rem;
+    line-height: 1.5rem;
+    text-align: center;
+    vertical-align: baseline;
+    border-radius: 0.75rem;
+}
+
+        </style>
+        <script text="text/javascript">
+
+let users;
+
+function init(e) {
+    const els = [...document.querySelectorAll('ul li')];
+    els.forEach((el, i) => {
+        el.setAttribute('user', `user-${i}`);
+    });
+    users = els.length;
+    updateBadges();
+    setInterval(updateBadges, 10000);
+}
+
+function updateBadges() {
+    for (i = 0; i < users; i++) {
+        const user = i;
+        const data = fetch(`/cdn/${user}.txt`)
+            .catch(err => console.error(err))
+            .then(response => {
+                if (!response.ok) {
+                    throw Error("URL not found");
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => {
+                console.log('Found', data, 'notifications for user', user);
+                if (Number(data) > 9) {
+                    data = '..';
+                }
+                document.querySelector(`[user=user-${user}]`)
+                    .setAttribute('user-notifications', data);
+            });
+    }
+}
+
+window.addEventListener('DOMContentLoaded', init);
+        </script>
+    </head>
+    <body>
+        <h1>Hello world</h1>
+        <p>
+            <a href="/api/notification">Notification</a>
+        </p>
+        <ul>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+            <li>User</li>
+        </ul>
+    </body>
+</html>

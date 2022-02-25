@@ -12,4 +12,4 @@ RUN npm install
 
 COPY . .
 
-CMD [ "npm", "run", "start:producer" ]
+CMD [ "npm", "run", "start" ]
