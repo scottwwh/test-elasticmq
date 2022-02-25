@@ -18,13 +18,13 @@ class ClientApp {
     async init() {
         console.log(this.config);
 
-        this.queue = new SQS({
-            endpoint: this.config.QUEUE_BASE_URL,
-            region: this.config.ZONE, // This does not matter
-        });
+        // this.queue = new SQS({
+        //     endpoint: this.config.QUEUE_BASE_URL,
+        //     region: this.config.ZONE, // This does not matter
+        // });
           
-        const queues = await this.queue.listQueues().promise();
-        console.log(queues);
+        // const queues = await this.queue.listQueues().promise();
+        // console.log(queues);
 
         // // Create simple producer
         this.producer = Producer.create({
