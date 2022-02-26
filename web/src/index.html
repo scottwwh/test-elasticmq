@@ -12,8 +12,9 @@ ul li {
     display: inline-block;
     padding: 2rem;
     margin: 1rem;
-    background-color: #eee;
-    border-radius: 0.5rem;
+    background-color: #ddd;
+    border: 1px solid #aaa;
+    border-radius: 1rem;
     position: relative;
 }
 
@@ -33,20 +34,45 @@ ul li:before {
         </style>
         <script text="text/javascript">
 
-let users;
+let users = [];
 
 function init(e) {
-    const els = [...document.querySelectorAll('ul li')];
-    els.forEach((el, i) => {
+    users = [...document.querySelectorAll('ul li')];
+    users.forEach((el, i) => {
         el.setAttribute('user', `user-${i}`);
     });
-    users = els.length;
     updateBadges();
     setInterval(updateBadges, 10000);
+
+    const add = document.querySelector('button.add-user').addEventListener('click', e => {
+        const id = users.length;
+        const str = document.createTextNode(`User ${users.length + 1}`);
+        const el = document.createElement('li');
+        el.append(str);
+        el.classList.add('user');
+        el.setAttribute('user', `user-${users.length}`);
+        users.push(el);
+        document.querySelector('ul').appendChild(el);
+
+        const data = fetch(`/api/user/${id}`)
+            .catch(err => console.error(err))
+            .then(response => {
+                if (!response.ok) {
+                    throw Error("URL not found");
+                } else {
+                    return response.text();
+                }
+            })
+            .then(data => {
+                // This whole thing should probably use a POST and receive a GUID
+                console.log('User created?', data);
+            });
+    });
 }
 
 function updateBadges() {
-    for (i = 0; i < users; i++) {
+    console.log('Udpate badges for', users.length, 'users');
+    for (i = 0; i < users.length; i++) {
         const user = i;
         const data = fetch(`/cdn/${user}.txt`)
             .catch(err => console.error(err))
@@ -59,8 +85,11 @@ function updateBadges() {
             })
             .then(data => {
                 console.log('Found', data, 'notifications for user', user);
-                if (Number(data) > 9) {
+                const num = Number(data);
+                if (num > 9) {
                     data = '..';
+                } else if (num === 0) {
+                    return;
                 }
                 document.querySelector(`[user=user-${user}]`)
                     .setAttribute('user-notifications', data);
@@ -69,24 +98,17 @@ function updateBadges() {
 }
 
 window.addEventListener('DOMContentLoaded', init);
+
         </script>
     </head>
     <body>
         <h1>Hello world</h1>
-        <p>
+        <nav>
             <a href="/api/notification">Notification</a>
-        </p>
+            <button class="add-user">Add user</button>
+        </nav>
         <ul>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
-            <li>User</li>
+            <!-- Users should be added dynamically and stuff -->
         </ul>
     </body>
 </html>

@@ -1,11 +1,9 @@
 const config = {
     ZONE: 'us-east-1',
-    QUEUE_BASE_URL: 'http://sqs:9324',
-    QUEUE_FULL_URL: 'http://sqs:9324/000000000000/',
-    // QUEUE_BASE_URL: 'http://localhost:9324',
-    // QUEUE_FULL_URL: 'http://localhost:9324/000000000000/',
-    QUEUE_REQUESTS: 'processor-requests',
-    QUEUE_RESPONSES: 'processor-notifications'
+    QUEUE_BASE_URL: process.env.QUEUE_BASE_URL,
+    QUEUE_FULL_URL: process.env.QUEUE_FULL_URL,
+    QUEUE_USERS: 'processor-user-requests',
+    QUEUE_NOTIFICATIONS: 'processor-notification-requests',
 }
 
 module.exports = config;

@@ -26,11 +26,26 @@ class ClientApp {
         // const queues = await this.queue.listQueues().promise();
         // console.log(queues);
 
-        // // Create simple producer
+        // Create producers
         this.producer = Producer.create({
-            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_REQUESTS,
+            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS,
             region: this.config.ZONE
         });
+
+        this.users = Producer.create({
+            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_USERS,
+            region: this.config.ZONE
+        });
+    }
+
+    async addUser(id) {
+        const params = {
+            id: 'message' + id, // Assume this could be a rootId?
+            body: `${id}`
+        };
+
+        const messages = [params];
+        await this.users.send(messages);
     }
 
     async sendMessages() {
@@ -38,7 +53,6 @@ class ClientApp {
         // Send a message to the queue with a specific ID (by default the body is used as the ID)
         const messages = [];
         const max = Math.floor(Math.random() * 10) + 1;
-        // const max = 1;
         for (var i = 0; i < max; i++) {
             const valid = Math.random() > 0.5 ? true : false ;
             const params = {
@@ -54,7 +68,7 @@ class ClientApp {
             // Throws an exception when pushed into the queue
             //
             // const message = new Message(params);
-            console.log(params);
+            // console.log(params);
             messages.push(params);
         }
 

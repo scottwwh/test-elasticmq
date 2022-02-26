@@ -18,5 +18,7 @@ services:
     environment:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
+      - QUEUE_BASE_URL
+      - QUEUE_FULL_URL
     depends_on:
       - "sqs"
