@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "reset": "rm ./swap/cdn/*.txt",
+    "reset": "rm ./public/cdn/*.txt",
     "start": "npm run reset && npm run start:producer & npm run start:consumer",
     "start:producer": "node index.js",
     "start:consumer": "node processor.js",

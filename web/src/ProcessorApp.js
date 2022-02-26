@@ -6,10 +6,12 @@ const { Consumer } = require('sqs-consumer');
 
 class ProcessorApp {
     constructor(config) {
-        this.users = this.createConsumer(config, config.QUEUE_USERS, this.userHandler);
+        this.config = config;
+
+        this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
         this.users.start();
 
-        this.notifications = this.createConsumer(config, config.QUEUE_NOTIFICATIONS, this.notificationHandler);
+        this.notifications = this.createConsumer(config, config.QUEUE_NOTIFICATIONS, msg => { this.notificationHandler(msg); });
         this.notifications.start();
         
         console.log('Consumer initialized!');
@@ -19,7 +21,7 @@ class ProcessorApp {
         // console.log(config, queue);
         const consumer = Consumer.create({
             queueUrl: config.QUEUE_FULL_URL + queue,
-            handleMessage: message => { handler(message) }
+            handleMessage: handler
         });
             
         consumer.on('error', (err) => {
@@ -40,9 +42,10 @@ class ProcessorApp {
     async userHandler(message) {
         if (message.Body) {
             console.log('Create new user:', message.MessageId, '/', message.Body);
+            // console.log(this.config);
 
             const user = message.Body;
-            const path = `./swap/cdn/${user}.txt`;
+            const path = this.config.WEB_CDN + `${user}.txt`;
             const notifications = "0";
             try {
                 fs.writeFileSync(path, notifications, { encoding: 'utf-8'});
@@ -65,7 +68,7 @@ class ProcessorApp {
             // console.log('Processed message: ' + JSON.stringify(message));
 
             const user = message.Body;
-            const path = `./swap/cdn/${user}.txt`;
+            const path = this.config.WEB_CDN + `${user}.txt`;
             try {
                 let notifications = 1;
                 notifications = fs.readFileSync(path, { encoding: 'utf-8'});

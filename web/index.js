@@ -10,7 +10,7 @@ const Koa = require('koa');
 const serve = require('koa-static')
 const router = require('@koa/router')();
 const app = new Koa();
-app.use(serve('./swap'));
+app.use(serve(config.WEB_PUBLIC));
 
 router.get('/', list)
   .get('/api/user/:id', user)
