@@ -13,22 +13,39 @@ ul li {
     padding: 2rem;
     margin: 1rem;
     background-color: #ddd;
-    border: 1px solid #aaa;
-    border-radius: 1rem;
+    border: 2px solid #aaa;
+    border-radius: 1.5rem;
+    width: 4rem;
+    text-align: center;
     position: relative;
+}
+
+ul li.active {
+    background: gold;
+    border-color: orange;
+}
+
+ul li.active.notified {
+    transition: all 0.25s;
+    background-color: #ddd;
+    border-color: #aaa;
 }
 
 ul li:before {
     content: attr(user-notifications);
-    background-color: orange;
+    background-color: maroon;
+    color: #fff;
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 1.5rem;
-    line-height: 1.5rem;
+    font-family: Arial;
+    font-size: 0.75rem;
+    font-weight: bold;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 2rem;
+    line-height: 2rem;
     text-align: center;
     vertical-align: baseline;
-    border-radius: 0.75rem;
+    border-radius: 1rem;
 }
 
         </style>
@@ -38,36 +55,92 @@ let users = [];
 
 function init(e) {
     users = [...document.querySelectorAll('ul li')];
-    users.forEach((el, i) => {
-        el.setAttribute('user', `user-${i}`);
-    });
-    updateBadges();
+
+    // Not required atm, since users aren't yet visible until
+    // they are created, which resets their notifications
+    // updateBadges();
+ 
+    // TBD: Replace with sockets/similar?
     setInterval(updateBadges, 10000);
 
-    const add = document.querySelector('button.add-user').addEventListener('click', e => {
-        const id = users.length;
-        const str = document.createTextNode(`User ${users.length + 1}`);
-        const el = document.createElement('li');
-        el.append(str);
-        el.classList.add('user');
-        el.setAttribute('user', `user-${users.length}`);
-        users.push(el);
-        document.querySelector('ul').appendChild(el);
+    document.querySelector('button.add-user').addEventListener('click', addUser);
+    document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
+}
 
-        const data = fetch(`/api/user/${id}`)
-            .catch(err => console.error(err))
-            .then(response => {
-                if (!response.ok) {
-                    throw Error("URL not found");
-                } else {
-                    return response.text();
-                }
-            })
-            .then(data => {
-                // This whole thing should probably use a POST and receive a GUID
-                console.log('User created?', data);
-            });
+function addUser(e) {
+    const id = users.length;
+    const str = document.createTextNode(`User ${users.length + 1}`);
+    const el = document.createElement('li');
+    el.append(str);
+    el.classList.add('user');
+    el.setAttribute('user', `user-${users.length}`);
+    el.addEventListener('transitionend', e => {
+        e.currentTarget.classList.remove('active');
+        e.currentTarget.classList.remove('notified');
     });
+
+    users.push(el);
+    document.querySelector('ul').appendChild(el);
+
+    const data = fetch(`/api/user/${id}`)
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.text();
+            }
+        })
+        .then(data => {
+            // This whole thing should probably use a POST and receive a GUID
+            console.log('User created?', data);
+        });
+}
+
+function sendNotificationsRandom(e) {
+    const button = e.currentTarget;
+    button.disabled = true;
+
+    // const total = Math.floor(Max.random() * users.length) + 1;
+    if (users.length === 0) return;
+
+    const intervalTotal = Math.floor(Math.random() * 80) + 20;
+    console.log(`Send ${intervalTotal} notifications`);
+
+    let intervalCount = 0;
+    let interval = setInterval(e => {
+        if (intervalCount == intervalTotal) {
+            clearInterval(interval);
+            button.disabled = false;
+        } else {
+            const i = Math.floor(Math.random() * users.length);
+            sendNotification(i);
+
+            intervalCount++;
+        }
+    }, 500);
+}
+
+function sendNotification(id) {
+    const el = users[id];
+    el.classList.add('active');
+    setTimeout(e => {
+        el.classList.add('notified');
+    }, 10);
+
+    const data = fetch(`/api/notification/${id}`)
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.text();
+            }
+        })
+        .then(data => {
+            // This whole thing should probably use a POST and receive a GUID
+            console.log('Notification sent?', data);
+        });
 }
 
 function updateBadges() {
@@ -86,7 +159,7 @@ function updateBadges() {
             .then(data => {
                 console.log('Found', data, 'notifications for user', user);
                 const num = Number(data);
-                if (num > 9) {
+                if (num > 99) {
                     data = '..';
                 } else if (num === 0) {
                     return;
@@ -104,11 +177,14 @@ window.addEventListener('DOMContentLoaded', init);
     <body>
         <h1>Hello world</h1>
         <nav>
-            <a href="/api/notification">Notification</a>
+            <!-- Doesn't work atm -->
+            <!-- <a href="/api/notification">Notification</a> -->
+
+            <button class="send-notification-random">Send random notifications</button>
             <button class="add-user">Add user</button>
         </nav>
         <ul>
-            <!-- Users should be added dynamically and stuff -->
+            <!-- Users goes here -->
         </ul>
     </body>
 </html>

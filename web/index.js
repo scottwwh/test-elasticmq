@@ -14,7 +14,7 @@ app.use(serve('./swap'));
 
 router.get('/', list)
   .get('/api/user/:id', user)
-  .get('/api/notification', notification)
+  .get('/api/notification/:id', notification)
 
 // Responses
 async function list(ctx) {
@@ -35,7 +35,15 @@ async function user(ctx) {
 
 async function notification(ctx) {
   try {
-    await client.sendMessages();
+    if (ctx.params && ctx.params.id) {
+      await client.sendMessage(ctx.params.id);
+    } else {
+      // Was used by /api/notification
+      //
+      // Does not work because it doesn't match the URL anymore
+      // await client.sendMessages();
+    }
+
     ctx.response.body = "ACK";
   } catch (err) {
     console.log(err);

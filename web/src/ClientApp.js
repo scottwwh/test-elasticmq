@@ -22,7 +22,7 @@ class ClientApp {
         //     endpoint: this.config.QUEUE_BASE_URL,
         //     region: this.config.ZONE, // This does not matter
         // });
-          
+        
         // const queues = await this.queue.listQueues().promise();
         // console.log(queues);
 
@@ -48,31 +48,34 @@ class ClientApp {
         await this.users.send(messages);
     }
 
+    async sendMessage(id) {
+        const messages = [];
+        const params = {
+            id: 'message' + id, // Assume this could be a rootId?
+            body: `${id}`,
+
+            // Causes an exception?
+            // messageAttributes: {
+            //   attr1: { DataType: 'Boolean', BooleanValue: valid }
+            // }
+        };
+
+        // Throws an exception when pushed into the queue
+        // const message = new Message(params);
+
+        messages.push(params);
+
+        await this.producer.send(messages);
+    }
+
     async sendMessages() {
         
         // Send a message to the queue with a specific ID (by default the body is used as the ID)
         const messages = [];
         const max = Math.floor(Math.random() * 10) + 1;
         for (var i = 0; i < max; i++) {
-            const valid = Math.random() > 0.5 ? true : false ;
-            const params = {
-                id: 'message' + i, // Assume this could be a rootId?
-                body: `${i}`,
-
-                // Throws an exception?
-                // messageAttributes: {
-                //   attr1: { DataType: 'Boolean', BooleanValue: valid }
-                // }          
-            };
-
-            // Throws an exception when pushed into the queue
-            //
-            // const message = new Message(params);
-            // console.log(params);
-            messages.push(params);
+            await this.sendMessage(i);
         }
-
-        await this.producer.send(messages);
 
         // Get the current size of the queue
         // const size = await this.producer.queueSize();
