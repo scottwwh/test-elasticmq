@@ -19,7 +19,7 @@ router.get('/', list)
 // Responses
 async function list(ctx) {
   ctx.response.type = 'html';
-  ctx.response.body = fs.readFileSync('./src/index.html');
+  ctx.response.body = fs.readFileSync('./public/index.html');
 };
 
 async function user(ctx) {
