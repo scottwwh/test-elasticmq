@@ -4,7 +4,9 @@
         <style type="text/css" media="screen">
 
 .user-cards {
+    margin-top: 1rem;
     padding: 0.25rem;
+    border-top: 1px solid #eee;
 }
 
 user-card {
@@ -14,7 +16,7 @@ user-card {
     background-color: #ddd;
     border: 2px solid #aaa;
     border-radius: 1.5rem;
-    width: 6rem;
+    width: 7rem;
     text-align: center;
     position: relative;
 }
@@ -25,7 +27,7 @@ user-card.active {
 }
 
 user-card.active.notified {
-    transition: all 0.25s;
+    transition: all 0.5s;
     background-color: #ddd;
     border-color: #aaa;
 }
@@ -78,16 +80,10 @@ function addUser(e) {
     const str = document.createTextNode(`User ${users.length + 1}`);
     const el = document.createElement('user-card');
     el.append(str);
-    el.classList.add('user');
+    el.setAttribute('user-id', max);
 
     if (users.length < names.length)
         el.setAttribute('name', names[max]);
-
-    el.setAttribute('user-id', max);
-    el.addEventListener('transitionend', e => {
-        e.currentTarget.classList.remove('active');
-        e.currentTarget.classList.remove('notified');
-    });
 
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
@@ -114,13 +110,19 @@ function sendNotificationsRandom(e) {
     // const total = Math.floor(Max.random() * users.length) + 1;
     if (users.length === 0) return;
 
+    // Pre-clean since events/intervals on web component are still not perfect
+    users.forEach(el => {
+        el.classList.remove('active', 'notified');
+    });
+
     const intervalTotal = Math.floor(Math.random() * 80) + 20;
-    console.log(`Send ${intervalTotal} notifications`);
+    // console.log(`Send ${intervalTotal} notifications`);
 
     let intervalCount = 0;
     let interval = setInterval(e => {
         if (intervalCount == intervalTotal) {
             clearInterval(interval);
+
             button.disabled = false;
         } else {
             const i = Math.floor(Math.random() * users.length);
@@ -128,15 +130,14 @@ function sendNotificationsRandom(e) {
 
             intervalCount++;
         }
-    }, 500);
+    }, 100);
 }
 
 function sendNotification(id) {
     const el = users[id];
-    el.classList.add('active');
-    setTimeout(e => {
-        el.classList.add('notified');
-    }, 10);
+
+    // This line should ideally allow me to remove the code below
+    el.dispatchEvent(new Event('notification-request'));
 
     const data = fetch(`/api/notification/${id}`)
         .catch(err => console.error(err))
@@ -172,7 +173,6 @@ function updateBadges() {
                 // console.log('Found', data, 'notifications for user ID', id);
                 const el = document.querySelector(`[user-id="${id}"]`);
                 el.notifications = data;
-                // console.log(el.notifications);
             });
     }
 }
@@ -190,6 +190,6 @@ window.addEventListener('DOMContentLoaded', init);
             <button class="send-notification-random">Send random notifications</button>
             <button class="add-user">Add user</button>
         </nav>
-        <div class="user-cards" style="border: 1px solid orange;"></div>
+        <section class="user-cards"></section>
     </body>
 </html>

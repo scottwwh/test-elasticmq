@@ -1,15 +1,5 @@
-// import {html, render} from 'https://unpkg.com/lit-html?module';
-
-// import {LitElement, html, css} from 'https://unpkg.com/lit-element/lit-element.js?module';
 import {LitElement, html, css} from 'https://unpkg.com/lit-element@2.2.1/lit-element.js?module';
 
-
-// import {customElement, property} from 'https://unpkg.com/lit-element@2.2.0/lib/decorators.js';
-// https://unpkg.com/browse/lit-element@2.2.0/lib/
-
-// console.log(customElement);
-
-// @customElement('simple-greeting')
 export class UserCard extends LitElement {
   static styles = css`p { color: blue }`;
 
@@ -22,14 +12,12 @@ export class UserCard extends LitElement {
         reflect: true,
         converter: {
           toAttribute: value => {
-            console.log('Convert value:', value);
-
-            const max = 9;
+            const max = 99;
             const num = parseInt(value);
             if (num === 0) {
               console.log('Return blank..');
               return '';
-            } else if (num > 9) {
+            } else if (num > max) {
               return '..';
             } else {
               return value;
@@ -44,11 +32,39 @@ export class UserCard extends LitElement {
     super();
     this.name = 'Anonymous';
     this.notifications = '';
+    this.notificationTime = null;
+    this.notificationInterval = null;
+
+    this.addEventListener('notification-request', this.handleNotificationRequest);
+    this.addEventListener('transitionend', this.resetStyles);
   }
 
-  attributeChangedCallback(name, oldval, newval) {
-    console.log('attribute change: ', name, newval);
-    super.attributeChangedCallback(name, oldval, newval);
+  resetStyles(e) {
+    if (e.propertyName !== 'background-color') {
+      return;
+    }
+
+    this.classList.remove('active', 'notified');
+  }
+
+  checkFade() {
+    if (new Date().getTime() - this.notificationTime >= 50) {
+        this.classList.add('notified');
+
+        clearInterval(this.notificationInterval);
+        this.notificationInterval = null;
+      } else {
+        this.classList.remove('notified');
+    }
+  }
+
+  handleNotificationRequest(e) {
+    this.notificationTime = new Date().getTime();
+    this.classList.add('active');
+
+    if (this.notificationInterval === null) {
+      this.notificationInterval = setInterval(this.checkFade.bind(this), 50)
+    }
   }
 
   render() {
