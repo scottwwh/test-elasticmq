@@ -44,15 +44,15 @@ export class UserCard extends LitElement {
       return;
     }
 
+    clearInterval(this.notificationInterval);
+    this.notificationInterval = null;
+
     this.classList.remove('active', 'notified');
   }
 
   checkFade() {
     if (new Date().getTime() - this.notificationTime >= 50) {
         this.classList.add('notified');
-
-        clearInterval(this.notificationInterval);
-        this.notificationInterval = null;
       } else {
         this.classList.remove('notified');
     }
@@ -61,6 +61,7 @@ export class UserCard extends LitElement {
   handleNotificationRequest(e) {
     this.notificationTime = new Date().getTime();
     this.classList.add('active');
+    this.classList.remove('notified');
 
     if (this.notificationInterval === null) {
       this.notificationInterval = setInterval(this.checkFade.bind(this), 50)

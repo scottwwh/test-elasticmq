@@ -54,14 +54,10 @@ user-card:before {
 
 import { UserCard } from './elements/UserCard.js';
 import names from './names.js';
-// console.log(names);
 
 let users = [];
 
 function init(e) {
-
-    // Unnecessary for the moment..
-    // users = [...document.querySelectorAll('ul li')];
 
     // Not required atm, since users aren't yet visible until
     // they are created, which resets their notifications
@@ -77,11 +73,8 @@ function init(e) {
 function addUser(e) {
     const id = users.length;
     const max = users.length;
-    const str = document.createTextNode(`User ${users.length + 1}`);
     const el = document.createElement('user-card');
-    el.append(str);
     el.setAttribute('user-id', max);
-
     if (users.length < names.length)
         el.setAttribute('name', names[max]);
 
@@ -136,7 +129,7 @@ function sendNotificationsRandom(e) {
 function sendNotification(id) {
     const el = users[id];
 
-    // This line should ideally allow me to remove the code below
+    // Trigger CSS transition
     el.dispatchEvent(new Event('notification-request'));
 
     const data = fetch(`/api/notification/${id}`)
@@ -150,11 +143,12 @@ function sendNotification(id) {
         })
         .then(data => {
             // This whole thing should probably use a POST and receive a GUID
-            console.log('Notification sent?', data);
+            console.log('Notification sent:', data);
         });
 }
 
 function updateBadges() {
+    // TODO: Filter users whose .notifications property has changed
     console.log('Udpate badges for', users.length, 'users');
     if (users.length === 0) return ;
 
