@@ -4,9 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npm run start:producer & npm run start:consumer",
+    "reset": "rm ./public/cdn/*.txt",
+    "start": "npm run reset && npm run start:producer & npm run start:consumer",
     "start:producer": "node index.js",
     "start:consumer": "node processor.js",
+    "dev": "npm run reset && npm run dev:producer & npm run dev:consumer",
+    "dev:producer": "node -r dotenv/config index.js dotenv_config_path=../.env.dev dotenv_config_debug=true",
+    "dev:consumer": "node -r dotenv/config processor.js dotenv_config_path=../.env.dev dotenv_config_debug=true",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -19,5 +23,8 @@
     "koa-static": "^5.0.0",
     "sqs-consumer": "^5.6.0",
     "sqs-producer": "^2.1.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.0.0"
   }
 }

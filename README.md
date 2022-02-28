@@ -4,18 +4,34 @@
 
 Testing ElasticMQ using a simplified version of this tutorial: https://github.com/alxolr/elasticmq-node-tutorial
 
-I am using the [default Docker image](https://github.com/softwaremill/elasticmq) which seems to support ARM 64.
+For the messaque queue, I'm using the [default Docker image](https://github.com/softwaremill/elasticmq) which seems to support ARM 64.
 
-Run:
-```
-docker-compose.yml up
-```
+## Requirements
+
+# Docker Compose
+# _Optional:_ Node 17.3
+
+## Dependencies
+
+On the web side, quite simple:
+- Koa
+- BBC's two SQS libraries: SQS Producer and SQS Consumer
+- Vanilla HTML/JS
+
+## Development
 
 Commands:
 ```
-cd ./sqs-mocks
-docker build -t sqs-mock .
+# Build web services/UI
+docker-compose build web
+
+# Run containers
+docker-compose up
 ```
+
+Once launched, the following will be available:
+- Web: http://localhost:3000/
+- ElasticMQ UI: http://localhost:9325/
 
 ## Alternatives
 
