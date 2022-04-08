@@ -8,19 +8,10 @@ For the messaque queue, I'm using the [default Docker image](https://github.com/
 
 ## Requirements
 
-# Docker Compose
-# _Optional:_ Node 17.3
+You must install:
+- Docker Compose
 
-## Dependencies
-
-On the web side, quite simple:
-- Koa
-- BBC's two SQS libraries: SQS Producer and SQS Consumer
-- Vanilla HTML/JS
-
-## Development
-
-Commands:
+To run:
 ```
 # Build web services/UI
 docker-compose build web
@@ -28,6 +19,15 @@ docker-compose build web
 # Run containers
 docker-compose up
 ```
+
+## Development
+
+### Dependencies
+
+On the web side, quite simple:
+- Koa
+- BBC's two SQS libraries: SQS Producer and SQS Consumer
+- Vanilla HTML/JS
 
 Once launched, the following will be available:
 - Web: http://localhost:3000/
