@@ -47,6 +47,11 @@ user-card:before {
     text-align: center;
     vertical-align: baseline;
     border-radius: 1rem;
+    transition: transform 0.5s;
+}
+
+user-card.updated:before {
+    transform: rotateY(359deg);
 }
 
         </style>
@@ -164,9 +169,12 @@ function updateBadges() {
                 }
             })
             .then(data => {
-                // console.log('Found', data, 'notifications for user ID', id);
                 const el = document.querySelector(`[user-id="${id}"]`);
-                el.notifications = data;
+                if (data > 0 && data != el.notifications) {
+                    // console.log('Found', data, 'notifications for user ID', id);
+                    el.notifications = data;
+                    el.classList.toggle('updated');
+                }
             });
     }
 }
