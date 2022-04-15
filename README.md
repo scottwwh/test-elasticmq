@@ -7,14 +7,16 @@ I started this repo to test ElasticMQ as a drop-in replacement for SQS for a sim
 Work started [based on a simplified version of this tutorial](https://github.com/alxolr/elasticmq-node-tutorial) but quickly got sidetracked proofing out a simple UI. For the message queue, I'm using [ElasticMQ's default Docker image](https://github.com/softwaremill/elasticmq) which seems to support ARM 64.
 
 Notes:
-- AWS' SDK is semi-magical in accessing cached credentials when developing locally, but of course these need to be explicitly passed in when launching via Docker Compose
+- AWS' SDK is semi-magical in accessing cached credentials when developing locally, but of course these need to be explicitly passed in when launching via Docker Compose - see [env reference](./env.reference).
 
 ## Requirements
 
 To run, install:
 - Docker Compose
 
-..then build/launch like so:
+Next, copy `.env.reference` to `.env` and configure values for AWS.
+
+Finally, build/launch like so:
 ```
 # Build web services/UI
 docker-compose build web
@@ -31,9 +33,9 @@ Once launched, the following will be available:
 
 ### Dependencies
 
-On the web side, quite simple:
-- Koa
-- BBC's two SQS libraries: SQS Producer and SQS Consumer
+On the app side:
+- npm v8.3
+- Node v17.3 (using Koa, and BBC's two SQS libraries: SQS Producer and SQS Consumer)
 - Vanilla HTML/JS
 
 ## Alternatives
