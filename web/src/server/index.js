@@ -1,7 +1,7 @@
 
 // SQS
-const config = require('./src/config');
-const ClientApp = require('./src/ClientApp');
+const config = require('./config');
+const ClientApp = require('./ClientApp');
 const client = new ClientApp(config);
 
 // App
@@ -19,7 +19,7 @@ router.get('/', list)
 // Responses
 async function list(ctx) {
   ctx.response.type = 'html';
-  ctx.response.body = fs.readFileSync('./public/index.html');
+  ctx.response.body = fs.readFileSync('./../public/index.html');
 };
 
 async function user(ctx) {

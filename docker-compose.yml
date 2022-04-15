@@ -1,6 +1,8 @@
 version: "3.9"
 
 services:
+
+  # Exclude when deployed
   sqs:
     image: softwaremill/elasticmq-native
     volumes:
@@ -11,7 +13,7 @@ services:
       - "9325:9325"
 
   web:
-    build: ./web/
+    build: ./web/ # Exclude when deployed
     restart: on-failure
     ports:
       - "3000:3000"
@@ -20,5 +22,6 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - QUEUE_BASE_URL
       - QUEUE_FULL_URL
+    # Exclude when deployed (SQS should always be up!)
     depends_on:
       - "sqs"

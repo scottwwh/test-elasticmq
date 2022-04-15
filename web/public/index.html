@@ -177,12 +177,14 @@ window.addEventListener('DOMContentLoaded', init);
     </head>
     <body>
         <h1>Hello world</h1>
-        <nav>
+        <nav style="float: left">
             <!-- Doesn't work atm -->
             <!-- <a href="/api/notification">Notification</a> -->
 
-            <button class="send-notification-random">Send random notifications</button>
             <button class="add-user">Add user</button>
+        </nav>
+        <nav style="text-align: right;">
+            <button class="send-notification-random">Send random notifications</button>
         </nav>
         <section class="user-cards"></section>
     </body>

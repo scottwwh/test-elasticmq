@@ -1,5 +1,5 @@
-const ProcessorApp = require('./src/ProcessorApp');
-const config = require('./src/config');
+const ProcessorApp = require('./ProcessorApp');
+const config = require('./config');
 
 try {
     const processor = new ProcessorApp(config);
