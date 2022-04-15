@@ -6,8 +6,8 @@
   "scripts": {
     "reset": "rm ./public/cdn/*.txt",
     "start": "npm run start:producer & npm run start:consumer",
-    "start:producer": "node index.js",
-    "start:consumer": "node processor.js",
+    "start:producer": "node src/server/index.js",
+    "start:consumer": "node src/server/processor.js",
     "dev": "npm run dev:producer & npm run dev:consumer",
     "dev:producer": "node -r dotenv/config ./src/server/index.js dotenv_config_path=../.env.dev dotenv_config_debug=true",
     "dev:consumer": "node -r dotenv/config ./src/server/processor.js dotenv_config_path=../.env.dev dotenv_config_debug=true",

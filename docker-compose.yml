@@ -22,6 +22,5 @@ services:
       - AWS_SECRET_ACCESS_KEY
       - QUEUE_BASE_URL
       - QUEUE_FULL_URL
-    # Exclude when deployed (SQS should always be up!)
-    depends_on:
+    depends_on: # Exclude when deployed (SQS should always be up!)
       - "sqs"
