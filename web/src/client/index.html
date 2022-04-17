@@ -76,12 +76,13 @@ function init(e) {
 }
 
 function addUser(e) {
+    document.querySelector('button.send-notification-random').disabled = false;
+
     const id = users.length;
     const max = users.length;
     const el = document.createElement('user-card');
     el.setAttribute('user-id', max);
-    if (users.length < names.length)
-        el.setAttribute('name', names[max]);
+    el.setAttribute('name', names.getRandom());
 
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
@@ -192,7 +193,7 @@ window.addEventListener('DOMContentLoaded', init);
             <button class="add-user">Add user</button>
         </nav>
         <nav style="text-align: right;">
-            <button class="send-notification-random">Send random notifications</button>
+            <button class="send-notification-random" disabled>Send random notifications</button>
         </nav>
         <section class="user-cards"></section>
     </body>
