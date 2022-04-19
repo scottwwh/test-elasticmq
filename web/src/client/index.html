@@ -47,6 +47,11 @@ user-card:before {
     text-align: center;
     vertical-align: baseline;
     border-radius: 1rem;
+    transition: transform 0.5s;
+}
+
+user-card.updated:before {
+    transform: rotateY(359deg);
 }
 
         </style>
@@ -71,12 +76,13 @@ function init(e) {
 }
 
 function addUser(e) {
+    document.querySelector('button.send-notification-random').disabled = false;
+
     const id = users.length;
     const max = users.length;
     const el = document.createElement('user-card');
     el.setAttribute('user-id', max);
-    if (users.length < names.length)
-        el.setAttribute('name', names[max]);
+    el.setAttribute('name', names.getRandom());
 
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
@@ -164,9 +170,12 @@ function updateBadges() {
                 }
             })
             .then(data => {
-                // console.log('Found', data, 'notifications for user ID', id);
                 const el = document.querySelector(`[user-id="${id}"]`);
-                el.notifications = data;
+                if (data > 0 && data != el.notifications) {
+                    // console.log('Found', data, 'notifications for user ID', id);
+                    el.notifications = data;
+                    el.classList.toggle('updated');
+                }
             });
     }
 }
@@ -177,12 +186,14 @@ window.addEventListener('DOMContentLoaded', init);
     </head>
     <body>
         <h1>Hello world</h1>
-        <nav>
+        <nav style="float: left">
             <!-- Doesn't work atm -->
             <!-- <a href="/api/notification">Notification</a> -->
 
-            <button class="send-notification-random">Send random notifications</button>
             <button class="add-user">Add user</button>
+        </nav>
+        <nav style="text-align: right;">
+            <button class="send-notification-random" disabled>Send random notifications</button>
         </nav>
         <section class="user-cards"></section>
     </body>

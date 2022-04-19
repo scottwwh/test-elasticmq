@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 
 // https://www.npmjs.com/package/sqs-consumer
 const { Consumer } = require('sqs-consumer');
@@ -7,6 +8,7 @@ const { Consumer } = require('sqs-consumer');
 class ProcessorApp {
     constructor(config) {
         this.config = config;
+        this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
 
         this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
         this.users.start();
@@ -45,7 +47,7 @@ class ProcessorApp {
             // console.log(this.config);
 
             const user = message.Body;
-            const path = this.config.WEB_CDN + `${user}.txt`;
+            const path = this.cdnRoot + `${user}.txt`;
             const notifications = "0";
             try {
                 fs.writeFileSync(path, notifications, { encoding: 'utf-8'});
@@ -68,7 +70,7 @@ class ProcessorApp {
             // console.log('Processed message: ' + JSON.stringify(message));
 
             const user = message.Body;
-            const path = this.config.WEB_CDN + `${user}.txt`;
+            const path = this.cdnRoot + `${user}.txt`;
             try {
                 let notifications = 1;
                 notifications = fs.readFileSync(path, { encoding: 'utf-8'});

@@ -50,5 +50,20 @@ Scarlett-Rose Guzman
 Farrah Flowers
 Hashir Oneal`
 
-const names = namesString.split('\n');
+class Names {
+    constructor(string) {
+        this.names = namesString.split('\n').map(name => {
+            return name.split(' ');
+        });
+    }
+
+    getRandom() {
+        const first = Math.floor(Math.random() * this.names.length);
+        const last = Math.floor(Math.random() * this.names.length);
+        return `${this.names[first][0]} ${this.names[last][1]}`;
+    }
+}
+
+const names = new Names(namesString);
+
 export default names;

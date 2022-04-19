@@ -1,16 +1,19 @@
 
 // SQS
-const config = require('./src/config');
-const ClientApp = require('./src/ClientApp');
+const config = require('./config');
+const ClientApp = require('./ClientApp');
 const client = new ClientApp(config);
 
 // App
 const fs = require('fs');
+const path = require('path');
 const Koa = require('koa');
 const serve = require('koa-static')
 const router = require('@koa/router')();
+
+const webRoot = path.join(__dirname, '..', config.WEB_PUBLIC);
 const app = new Koa();
-app.use(serve(config.WEB_PUBLIC));
+app.use(serve(webRoot));
 
 router.get('/', list)
   .get('/api/user/:id', user)
@@ -18,8 +21,9 @@ router.get('/', list)
 
 // Responses
 async function list(ctx) {
+  const file = path.join(webRoot, 'index.html')
   ctx.response.type = 'html';
-  ctx.response.body = fs.readFileSync('./public/index.html');
+  ctx.response.body = fs.readFileSync(file);
 };
 
 async function user(ctx) {
