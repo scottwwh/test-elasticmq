@@ -9,6 +9,14 @@ Work started [based on a simplified version of this tutorial](https://github.com
 Notes:
 - AWS' SDK is semi-magical in accessing cached credentials when developing locally, but of course these need to be explicitly passed in when launching via Docker Compose - see [env reference](./env.reference).
 
+## TODO
+
+- Add UUIDv4 identifiers for users
+- Add WebSockets for client updates (https://ably.com/blog/web-app-websockets-nodejs):
+  - After being created
+  - After notifications have been received (can trigger reload from CDN if necessary)
+- Add "intermediate" visual state notifications sent < notifications processed
+
 ## Requirements
 
 To run, install:

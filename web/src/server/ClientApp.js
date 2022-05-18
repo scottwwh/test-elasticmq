@@ -10,6 +10,70 @@ const Message = require('./Message');
 // Set up a producer: https://www.npmjs.com/package/sqs-producer
 const { Producer } = require('sqs-producer');
 
+
+// WebSockets for async updates
+const WebSocket = require('ws');
+const crypto = require('crypto');
+
+const wss = new WebSocket.Server({ port: 7071 });
+const clients = new Map();
+
+wss.on('connection', (ws) => {
+    const uuid = crypto.randomUUID()
+    const color = Math.floor(Math.random() * 360);
+    const metadata = { uuid, color };
+
+    clients.set(ws, metadata);
+
+    // Relay messages from any client (not exactly what I need?)
+    ws.on('message', (messageAsString) => {
+        const message = JSON.parse(messageAsString);
+        const metadata = clients.get(ws);
+
+        message.sender = metadata.id;
+        message.color = metadata.color;
+
+        wsBroadcastMessage(message);
+    });
+
+    ws.on("close", () => {
+        clients.delete(ws);
+    });
+
+    const foo = {
+        status: "INITIALIZED BABY!!!",
+        uuid
+    };
+    wsBroadcastMessage(foo);
+
+    // TODO: Clear the interval if connection is closed (currently causing a cascade of overlapping messages in the beginning)
+    let i = 0;
+    let interval = setInterval(() => {
+        i++;
+        if (i <= 10) {
+            const data = {
+                status: `Still running`,
+                number: i
+            }
+            wsBroadcastMessage(data);
+        } else {
+            clearInterval(interval);
+            i = 0;
+        }
+    }, 500);
+});
+
+function wsBroadcastMessage(data) {
+    const message = JSON.stringify(data);
+
+    [...clients.keys()].forEach((client) => {
+        client.send(message);
+    });
+}
+
+console.log("wss up");
+
+
 class ClientApp {
     constructor(config) {
         this.config = config;
