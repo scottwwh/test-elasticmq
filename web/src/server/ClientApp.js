@@ -12,6 +12,7 @@ const { Producer } = require('sqs-producer');
 
 
 // WebSockets for async updates
+// Ref: https://ably.com/blog/web-app-websockets-nodejs
 const WebSocket = require('ws');
 const crypto = require('crypto');
 

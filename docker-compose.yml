@@ -17,6 +17,7 @@ services:
     restart: on-failure
     ports:
       - "3000:3000"
+      - "7071:7071"
     environment:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY
