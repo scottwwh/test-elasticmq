@@ -15,12 +15,14 @@ const { Producer } = require('sqs-producer');
 // Ref: https://ably.com/blog/web-app-websockets-nodejs
 const WebSocket = require('ws');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const wss = new WebSocket.Server({ port: 7071 });
 const clients = new Map();
 
 wss.on('connection', (ws) => {
-    const uuid = crypto.randomUUID()
+    const uuid = crypto.randomUUID();
     const color = Math.floor(Math.random() * 360);
     const metadata = { uuid, color };
 
@@ -75,9 +77,10 @@ function wsBroadcastMessage(data) {
 console.log("wss up");
 
 
-class ClientApp {
+class ServiceApp {
     constructor(config) {
         this.config = config;
+        this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
     }
 
     async init() {
@@ -92,25 +95,47 @@ class ClientApp {
         // console.log(queues);
 
         // Create producers
-        this.producer = Producer.create({
+        this.notifications = Producer.create({
             queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS,
             region: this.config.ZONE
         });
 
-        this.users = Producer.create({
-            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_USERS,
-            region: this.config.ZONE
-        });
+        // this.users = Producer.create({
+        //     queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_USERS,
+        //     region: this.config.ZONE
+        // });
     }
 
-    async addUser(id) {
-        const params = {
-            id: 'message' + id, // Assume this could be a rootId?
-            body: `${id}`
+    async addUser(name) {
+        const payload = {
+            id: crypto.randomUUID(),
+            name,
+            notifications: 0
         };
 
-        const messages = [params];
-        await this.users.send(messages);
+        const user = payload.id;
+        const path = this.cdnRoot + `${user}.json`;
+
+        // TODO: Check to verify whether user has already been created,
+        // and make sure that front-end is not trying to create the user again!
+        try {
+            fs.writeFileSync(path, JSON.stringify(payload), { encoding: 'utf-8'});
+            return user;
+        } catch(err) {
+            console.error(err)
+        }
+
+        // TODO: Remove users queue from ElasticMQ because we're not using this anymore!
+        //
+        // const payload = JSON.parse(message.Body);
+        // Commenting out MQ for user creation for the moment
+        // const params = {
+        //     id: 'message' + id, // Assume this could be a rootId?
+        //     body: JSON.stringify(payload)
+        // };
+        //
+        // const messages = [params];
+        // await this.users.send(messages);
     }
 
     async sendMessage(id) {
@@ -130,7 +155,7 @@ class ClientApp {
 
         messages.push(params);
 
-        await this.producer.send(messages);
+        await this.notifications.send(messages);
     }
 
     async sendMessages() {
@@ -143,9 +168,9 @@ class ClientApp {
         }
 
         // Get the current size of the queue
-        // const size = await this.producer.queueSize();
+        // const size = await this.notifications.queueSize();
         // console.log(`There are currently ${size} messages on the queue.`);
     }
 }
 
-module.exports = ClientApp;
+module.exports = ServiceApp;

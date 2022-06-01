@@ -41,16 +41,18 @@ class ProcessorApp {
         return consumer;
     }
 
+    // TODO: Remove this since we're assuming synchronous CRUD operations
     async userHandler(message) {
         if (message.Body) {
             console.log('Create new user:', message.MessageId, '/', message.Body);
             // console.log(this.config);
 
-            const user = message.Body;
-            const path = this.cdnRoot + `${user}.txt`;
-            const notifications = "0";
+            const payload = JSON.parse(message.Body);
+            const user = payload.id;
+            const path = this.cdnRoot + `${user}.json`;
+            // const notifications = "0";
             try {
-                fs.writeFileSync(path, notifications, { encoding: 'utf-8'});
+                fs.writeFileSync(path, message.Body, { encoding: 'utf-8'});
             } catch(err) {
                 console.error(err)
             }
@@ -70,12 +72,12 @@ class ProcessorApp {
             // console.log('Processed message: ' + JSON.stringify(message));
 
             const user = message.Body;
-            const path = this.cdnRoot + `${user}.txt`;
+            const path = this.cdnRoot + `${user}.json`;
             try {
-                let notifications = 1;
-                notifications = fs.readFileSync(path, { encoding: 'utf-8'});
-                notifications = Number(notifications) + 1;
-                fs.writeFileSync(path, `${notifications}`, { encoding: 'utf-8'});
+                const payload = fs.readFileSync(path, { encoding: 'utf-8'});
+                const data = JSON.parse(payload);
+                data.notifications += 1;
+                fs.writeFileSync(path, JSON.stringify(data), { encoding: 'utf-8'});
             } catch(err) {
                 // TODO: Obviously not ready for primetime
                 console.error(err)
