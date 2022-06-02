@@ -6,12 +6,13 @@ let users = [];
 
 async function init(e) {
 
-    // Not required atm, since users aren't yet visible until
-    // they are created, which resets their notifications
-    updateBadges();
+    const initUsers = addUsers();
+    initUsers.then(data => {
+        console.log('Loaded all users');
 
-    await addUsers();
- 
+        updateBadges();
+    });
+
     // TODO: Replace with sockets/similar
     setInterval(updateBadges, 10000);
 
@@ -99,9 +100,12 @@ async function addUsers() {
             }
         });
 
+    const users = [];
     data.forEach(id => {
-        addUserCard(id);
+        users.push(addUserCard(id));
     });
+
+    return Promise.all(users);
 }
 
 function addUserCard(id) {
@@ -117,7 +121,7 @@ function addUserCard(id) {
         el.setAttribute('name', name);
     } else {
         // Set name async
-        fetch(`/api/user/${id}`)
+        return fetch(`/api/user/${id}`)
             .catch(err => console.error(err))
             .then(response => {
                 if (!response.ok) {
