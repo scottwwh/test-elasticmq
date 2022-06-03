@@ -8,13 +8,9 @@ async function init(e) {
 
     const initUsers = addUsers();
     initUsers.then(data => {
-        console.log('Loaded all users');
-
+        // console.log('Loaded all users');
         updateBadges();
     });
-
-    // TODO: Replace with sockets/similar
-    // setInterval(updateBadges, 10000);
 
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
@@ -31,16 +27,10 @@ async function initWebSocket() {
 
     ws.onmessage = (webSocketMessage) => {
         const messageBody = JSON.parse(webSocketMessage.data);
-        console.log('Received message:', messageBody);
-
         if (messageBody.type === 'notification') {
-            // document.querySelector('.counter span').textContent = messageBody.number;
-            // const 
             updateBadgeNotification(messageBody.id);
-
-        // Update web components
-        } else if (messageBody.status === 'Still running') {
-            document.querySelector('.counter span').textContent = messageBody.number;
+        } else {
+            console.log('Unknown message type', messageBody);
         }
     };
 
@@ -150,7 +140,6 @@ function sendNotificationsRandom(e) {
     const button = e.currentTarget;
     button.disabled = true;
 
-    // const total = Math.floor(Max.random() * users.length) + 1;
     if (users.length === 0) return;
 
     // Pre-clean since events/intervals on web component are still not perfect
@@ -176,8 +165,16 @@ function sendNotificationsRandom(e) {
     }, 100);
 }
 
-function sendNotification(id) {
-    const el = users[id];
+/**
+ * Send notification (rather than taking an action that triggers a notification) via API
+ * 
+ * TODO: Adapt this so it works with either index (as it does now) or ID
+ * TODO: Replace with POST
+ * 
+ * @param {*} index
+ */
+function sendNotification(index) {
+    const el = users[index];
 
     // Trigger CSS transition
     el.dispatchEvent(new Event('notification-request'));
@@ -193,41 +190,22 @@ function sendNotification(id) {
             }
         })
         .then(data => {
-            // This whole thing should probably use a POST and receive a GUID
             console.log('Notification sent:', data);
         });
 }
 
+/**
+ * Update notification badges for the first time
+ * @returns 
+ */
 function updateBadges() {
-    // TODO: Filter users whose .notifications property has changed
-    console.log('Udpate badges for', users.length, 'users');
+    // console.log('Udpate badges for', users.length, 'users');
     if (users.length === 0) return ;
 
     const updates = [];
     for (var i = 0; i < users.length; i++) {
-        // const id = i;
         const uuid = users[i].getAttribute('user-id');
         const data = updateBadgeNotification(uuid);
-        // const data = fetch(`/cdn/${uuid}.json`)
-        //     .catch(err => console.error(err))
-        //     .then(response => {
-        //         if (!response.ok) {
-        //             throw Error("URL not found");
-        //         } else {
-        //             return response.json();
-        //         }
-        //     })
-        //     .then(data => {
-        //         const el = document.querySelector(`[user-id="${data.id}"]`);
-        //         const notifications = data.notifications;
-        //         if (notifications > 0 && notifications != el.notifications) {
-        //             // console.log('Found', data, 'notifications for user ID', data.id);
-        //             el.notifications = data.notifications;
-        //             el.classList.toggle('updated');
-        //         } else {
-        //             // console.log('No updates');
-        //         }
-        //     });
         updates.push(data);
     }
 
@@ -237,26 +215,33 @@ function updateBadges() {
     });
 }
 
+/**
+ * Update badge notification based on JSON
+ * 
+ * TODO: Replace this with an image generator in ProcessorApp, which _should_ render all of this moot
+ * 
+ * @param {*} uuid 
+ * @returns 
+ */
 function updateBadgeNotification(uuid) {
-    // console.log('Do something for', uuid);
     return fetch(`/cdn/${uuid}.json`)
         .catch(err => console.error(err))
         .then(response => {
             if (!response.ok) {
                 throw Error("URL not found");
             } else {
+                // What happens when JSON is invalid?
                 return response.json();
             }
         })
         .then(data => {
             const el = document.querySelector(`[user-id="${data.id}"]`);
+
+            // TODO: Replace this with ? notation for if-set
             const notifications = data.notifications;
             if (notifications > 0 && notifications != el.notifications) {
-                // console.log('Found', data, 'notifications for user ID', data.id);
                 el.notifications = data.notifications;
                 el.classList.toggle('updated');
-            } else {
-                // console.log('No updates');
             }
         });
 }

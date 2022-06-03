@@ -82,11 +82,6 @@ async function sendNotification(ctx) {
   try {
     if (ctx.params && ctx.params.id) {
       await service.sendMessage(ctx.params.id);
-    } else {
-      // Was used by /api/notification
-      //
-      // Does not work because it doesn't match the URL anymore
-      // await service.sendMessages();
     }
 
     ctx.response.body = "ACK";

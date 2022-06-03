@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 
 // https://www.npmjs.com/package/sqs-consumer
-// const { Consumer } = require('sqs-consumer');
 const { Producer } = require('sqs-producer');
 const BaseConsumer = require('./BaseConsumer');
 
@@ -11,12 +10,15 @@ class ProcessorApp {
         this.config = config;
         this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
 
-        // Not currently needed!
+        // TODO - Use this to handle user deletion
         // this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
         // this.users.start();
 
-        // this.notificationRequests = this.createConsumer(config, config.QUEUE_NOTIFICATIONS_REQUESTS, msg => { this.notificationHandler(msg); });
-        this.notificationRequests = new BaseConsumer(config, config.QUEUE_NOTIFICATIONS_REQUESTS, msg => { this.notificationHandler(msg); });
+        this.notificationRequests = new BaseConsumer(
+            config,
+            config.QUEUE_NOTIFICATIONS_REQUESTS,
+            msg => { this.notificationHandler(msg); }
+        );
         this.notificationRequests.start();
 
         this.notificationResponses = Producer.create({
@@ -26,27 +28,6 @@ class ProcessorApp {
         
         console.log('ProcessApp initialized!');
     }
-
-    // createConsumer(config, queue, handler) {
-    //     const consumer = Consumer.create({
-    //         queueUrl: config.QUEUE_FULL_URL + queue,
-    //         handleMessage: handler
-    //     });
-            
-    //     consumer.on('error', (err) => {
-    //         console.error(err.message);
-    //     });
-        
-    //     consumer.on('processing_error', (err) => {
-    //         console.error(err.message);
-    //     });
-
-    //     consumer.on('empty', (err) => {
-    //         console.error("Queue is empty!");
-    //     });
-
-    //     return consumer;
-    // }
 
     // TODO: Remove this since we're assuming synchronous CRUD operations
     async userHandler(message) {
@@ -75,9 +56,6 @@ class ProcessorApp {
 
     async notificationHandler(message) {
         if (message.Body) {
-            console.log('Processed ' + message.MessageId, '/', message.Body);
-            // console.log('Processed message: ' + JSON.stringify(message));
-
             const user = message.Body;
             const path = this.cdnRoot + `${user}.json`;
             try {
@@ -90,11 +68,6 @@ class ProcessorApp {
                 const params = {
                     id: 'message' + user, // Assume this could be a rootId?
                     body: user,
-        
-                    // Causes an exception?
-                    // messageAttributes: {
-                    //   attr1: { DataType: 'Boolean', BooleanValue: valid }
-                    // }
                 };
         
                 this.notificationResponses.send([params]);

@@ -2,9 +2,11 @@
 
 ## Background
 
-I started this repo to test ElasticMQ as a drop-in replacement for SQS for a simple content pipeline to generate notification data asynchronously.
+I started this repo to test ElasticMQ as a drop-in replacement for SQS.
 
-Work started [based on a simplified version of this tutorial](https://github.com/alxolr/elasticmq-node-tutorial) but quickly got sidetracked proofing out a simple UI. For the message queue, I'm using [ElasticMQ's default Docker image](https://github.com/softwaremill/elasticmq) which seems to support ARM 64.
+Work started [based on a simplified version of this tutorial](https://github.com/alxolr/elasticmq-node-tutorial) but quickly got sidetracked proofing out a simple UI for a simple content pipeline to generate notifications asynchronously.
+
+I'm using [ElasticMQ's default Docker image](https://github.com/softwaremill/elasticmq) which supports ARM 64.
 
 ![Sequence flow diagram](./docs/system.png)
 
@@ -13,11 +15,9 @@ Gotchas:
 
 ## TODO
 
-- Add UUIDv4 identifiers for users
-- Add WebSockets for client updates (https://ably.com/blog/web-app-websockets-nodejs):
-  - After being created
-  - After notifications have been received (can trigger reload from CDN if necessary)
-- Add "intermediate" visual state notifications sent < notifications processed
+- Add "intermediate" visual state when notifications requested < notifications received
+- **DONE** - Add UUIDv4 identifiers for users
+- **DONE** - Add WebSockets for notifications (https://ably.com/blog/web-app-websockets-nodejs)
 
 ## Requirements
 
@@ -35,7 +35,7 @@ docker-compose build web
 docker-compose up
 ```
 
-Once launched, the following will be available:
+Once launched, the following URLs will be available:
 - Web: http://localhost:3000/
 - ElasticMQ UI: http://localhost:9325/
 

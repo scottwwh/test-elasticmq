@@ -28,14 +28,15 @@ const wss = new WebSocket.Server({ port: 7071 });
 const clients = new Map();
 
 wss.on('connection', (ws) => {
+    // Set the context for each connection
     const uuid = crypto.randomUUID();
     const color = Math.floor(Math.random() * 360);
     const metadata = { uuid, color };
-
     clients.set(ws, metadata);
 
     // Relay messages from any client (not exactly what I need?)
     ws.on('message', (messageAsString) => {
+        console.log('Receive message');
         const message = JSON.parse(messageAsString);
         const metadata = clients.get(ws);
 
@@ -49,11 +50,11 @@ wss.on('connection', (ws) => {
         clients.delete(ws);
     });
 
-    const foo = {
-        status: "INITIALIZED BABY!!!",
-        uuid
-    };
-    wsBroadcastMessage(foo);
+    // const foo = {
+    //     status: "INITIALIZED BABY!!!",
+    //     uuid
+    // };
+    // wsBroadcastMessage(foo);
 
     // TODO: Clear the interval if connection is closed (currently causing a cascade of overlapping messages in the beginning)
     let i = 0;
@@ -95,15 +96,16 @@ class ServiceApp {
     async init() {
         console.log(this.config);
 
+        // Use this to test queue status?
         // this.queue = new SQS({
         //     endpoint: this.config.QUEUE_BASE_URL,
         //     region: this.config.ZONE, // This does not matter
         // });
-        
+        //        
         // const queues = await this.queue.listQueues().promise();
         // console.log(queues);
 
-        // Create producers
+        // Create producers/consumers
         this.notificationRequests = Producer.create({
             queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS_REQUESTS,
             region: this.config.ZONE
@@ -115,22 +117,17 @@ class ServiceApp {
             msg => { this.notificationHandler(msg); }
         );
         this.notificationResponses.start();
-
-        // this.users = Producer.create({
-        //     queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_USERS,
-        //     region: this.config.ZONE
-        // });
     }
 
     notificationHandler(msg) {
         if (msg.Body) {
-            console.log('Handle message', msg);
+            // console.log('Handle message', msg);
 
             try {
                 wsBroadcastMessage({ type: 'notification', id: msg.Body });
         
             } catch(err) {
-                // TODO: Obviously not ready for primetime
+                // TODO: Obviously not ready for primetime because....
                 console.error(err)
             }
 
@@ -141,7 +138,6 @@ class ServiceApp {
             // Messages don't seem to be cleared out with Promise.reject or errors, so use this
             Promise.resolve(false);
         }
-
     }
 
     async addUser(name) {
@@ -162,18 +158,6 @@ class ServiceApp {
         } catch(err) {
             console.error(err)
         }
-
-        // TODO: Remove users queue from ElasticMQ because we're not using this anymore!
-        //
-        // const payload = JSON.parse(message.Body);
-        // Commenting out MQ for user creation for the moment
-        // const params = {
-        //     id: 'message' + id, // Assume this could be a rootId?
-        //     body: JSON.stringify(payload)
-        // };
-        //
-        // const messages = [params];
-        // await this.users.send(messages);
     }
 
     async sendMessage(id) {
@@ -194,20 +178,6 @@ class ServiceApp {
         messages.push(params);
 
         await this.notificationRequests.send(messages);
-    }
-
-    async sendMessages() {
-        
-        // Send a message to the queue with a specific ID (by default the body is used as the ID)
-        const messages = [];
-        const max = Math.floor(Math.random() * 10) + 1;
-        for (var i = 0; i < max; i++) {
-            await this.sendMessage(i);
-        }
-
-        // Get the current size of the queue
-        // const size = await this.notificationRequests.queueSize();
-        // console.log(`There are currently ${size} messages on the queue.`);
     }
 }
 
