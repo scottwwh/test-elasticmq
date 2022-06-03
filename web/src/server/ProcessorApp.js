@@ -2,44 +2,51 @@ const fs = require('fs');
 const path = require('path');
 
 // https://www.npmjs.com/package/sqs-consumer
-const { Consumer } = require('sqs-consumer');
-// const { Producer } = require('sqs-producer');
+// const { Consumer } = require('sqs-consumer');
+const { Producer } = require('sqs-producer');
+const BaseConsumer = require('./BaseConsumer');
 
 class ProcessorApp {
     constructor(config) {
         this.config = config;
         this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
 
-        this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
-        this.users.start();
+        // Not currently needed!
+        // this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
+        // this.users.start();
 
-        this.notifications = this.createConsumer(config, config.QUEUE_NOTIFICATIONS, msg => { this.notificationHandler(msg); });
-        this.notifications.start();
+        // this.notificationRequests = this.createConsumer(config, config.QUEUE_NOTIFICATIONS_REQUESTS, msg => { this.notificationHandler(msg); });
+        this.notificationRequests = new BaseConsumer(config, config.QUEUE_NOTIFICATIONS_REQUESTS, msg => { this.notificationHandler(msg); });
+        this.notificationRequests.start();
+
+        this.notificationResponses = Producer.create({
+            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS_RESPONSES,
+            region: this.config.ZONE
+        });
         
-        console.log('Consumer initialized!');
+        console.log('ProcessApp initialized!');
     }
 
-    createConsumer(config, queue, handler) {
-        // console.log(config, queue);
-        const consumer = Consumer.create({
-            queueUrl: config.QUEUE_FULL_URL + queue,
-            handleMessage: handler
-        });
+    // createConsumer(config, queue, handler) {
+    //     const consumer = Consumer.create({
+    //         queueUrl: config.QUEUE_FULL_URL + queue,
+    //         handleMessage: handler
+    //     });
             
-        consumer.on('error', (err) => {
-            console.error(err.message);
-        });
+    //     consumer.on('error', (err) => {
+    //         console.error(err.message);
+    //     });
         
-        consumer.on('processing_error', (err) => {
-            console.error(err.message);
-        });
+    //     consumer.on('processing_error', (err) => {
+    //         console.error(err.message);
+    //     });
 
-        consumer.on('empty', (err) => {
-            console.error("Queue is empty!");
-        });
+    //     consumer.on('empty', (err) => {
+    //         console.error("Queue is empty!");
+    //     });
 
-        return consumer;
-    }
+    //     return consumer;
+    // }
 
     // TODO: Remove this since we're assuming synchronous CRUD operations
     async userHandler(message) {
@@ -78,6 +85,20 @@ class ProcessorApp {
                 const data = JSON.parse(payload);
                 data.notifications += 1;
                 fs.writeFileSync(path, JSON.stringify(data), { encoding: 'utf-8'});
+
+                // Send message!
+                const params = {
+                    id: 'message' + user, // Assume this could be a rootId?
+                    body: user,
+        
+                    // Causes an exception?
+                    // messageAttributes: {
+                    //   attr1: { DataType: 'Boolean', BooleanValue: valid }
+                    // }
+                };
+        
+                this.notificationResponses.send([params]);
+        
             } catch(err) {
                 // TODO: Obviously not ready for primetime
                 console.error(err)

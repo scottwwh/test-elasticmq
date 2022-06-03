@@ -9,6 +9,8 @@ const Message = require('./Message');
 
 // Set up a producer: https://www.npmjs.com/package/sqs-producer
 const { Producer } = require('sqs-producer');
+// const { Consumer } = require('sqs-consumer');
+const BaseConsumer = require('./BaseConsumer');
 
 
 // WebSockets for async updates
@@ -17,6 +19,10 @@ const WebSocket = require('ws');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+
+//-- Web sockets --//
+
 
 const wss = new WebSocket.Server({ port: 7071 });
 const clients = new Map();
@@ -77,6 +83,9 @@ function wsBroadcastMessage(data) {
 console.log("wss up");
 
 
+//-- App --//
+
+
 class ServiceApp {
     constructor(config) {
         this.config = config;
@@ -95,15 +104,44 @@ class ServiceApp {
         // console.log(queues);
 
         // Create producers
-        this.notifications = Producer.create({
-            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS,
+        this.notificationRequests = Producer.create({
+            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS_REQUESTS,
             region: this.config.ZONE
         });
+
+        this.notificationResponses = new BaseConsumer(
+            this.config,
+            this.config.QUEUE_NOTIFICATIONS_RESPONSES,
+            msg => { this.notificationHandler(msg); }
+        );
+        this.notificationResponses.start();
 
         // this.users = Producer.create({
         //     queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_USERS,
         //     region: this.config.ZONE
         // });
+    }
+
+    notificationHandler(msg) {
+        if (msg.Body) {
+            console.log('Handle message', msg);
+
+            try {
+                wsBroadcastMessage({ type: 'notification', id: msg.Body });
+        
+            } catch(err) {
+                // TODO: Obviously not ready for primetime
+                console.error(err)
+            }
+
+            Promise.resolve(true);
+        } else {
+            console.log('Invalid content:', msg);
+
+            // Messages don't seem to be cleared out with Promise.reject or errors, so use this
+            Promise.resolve(false);
+        }
+
     }
 
     async addUser(name) {
@@ -155,7 +193,7 @@ class ServiceApp {
 
         messages.push(params);
 
-        await this.notifications.send(messages);
+        await this.notificationRequests.send(messages);
     }
 
     async sendMessages() {
@@ -168,7 +206,7 @@ class ServiceApp {
         }
 
         // Get the current size of the queue
-        // const size = await this.notifications.queueSize();
+        // const size = await this.notificationRequests.queueSize();
         // console.log(`There are currently ${size} messages on the queue.`);
     }
 }

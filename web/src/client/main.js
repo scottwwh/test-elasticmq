@@ -14,13 +14,17 @@ async function init(e) {
     });
 
     // TODO: Replace with sockets/similar
-    setInterval(updateBadges, 10000);
+    // setInterval(updateBadges, 10000);
 
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
 
     await initWebSocket();
 }
+
+
+//-- Web sockets --//
+
 
 async function initWebSocket() {
     const ws = await connectToServer();
@@ -29,7 +33,13 @@ async function initWebSocket() {
         const messageBody = JSON.parse(webSocketMessage.data);
         console.log('Received message:', messageBody);
 
-        if (messageBody.status === 'Still running') {
+        if (messageBody.type === 'notification') {
+            // document.querySelector('.counter span').textContent = messageBody.number;
+            // const 
+            updateBadgeNotification(messageBody.id);
+
+        // Update web components
+        } else if (messageBody.status === 'Still running') {
             document.querySelector('.counter span').textContent = messageBody.number;
         }
     };
@@ -54,11 +64,15 @@ async function connectToServer() {
 }
 
 
-function addUser(e) {
-    // const id = users.length;
-    const name = names.getRandom();
+//--- WEB COMPONENTS ---//
 
-    // addUserCard(id);
+
+/**
+ * Create user
+ * @param {*} e 
+ */
+function addUser(e) {
+    const name = names.getRandom();
 
     fetch(`/api/user/`, {
             method: 'POST',
@@ -117,23 +131,19 @@ function addUserCard(id) {
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
 
-    if (name) {
-        el.setAttribute('name', name);
-    } else {
-        // Set name async
-        return fetch(`/api/user/${id}`)
-            .catch(err => console.error(err))
-            .then(response => {
-                if (!response.ok) {
-                    throw Error("URL not found");
-                } else {
-                    return response.json();
-                }
-            })
-            .then(data => {
-                el.setAttribute('name', data.name);
-            });
-    }
+    return fetch(`/api/user/${id}`)
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.json();
+            }
+        })
+        .then(data => {
+            // Update card with name - this seems a bit backwards for new users?
+            el.setAttribute('name', data.name);
+        });
 }
 
 function sendNotificationsRandom(e) {
@@ -197,26 +207,27 @@ function updateBadges() {
     for (var i = 0; i < users.length; i++) {
         // const id = i;
         const uuid = users[i].getAttribute('user-id');
-        const data = fetch(`/cdn/${uuid}.json`)
-            .catch(err => console.error(err))
-            .then(response => {
-                if (!response.ok) {
-                    throw Error("URL not found");
-                } else {
-                    return response.json();
-                }
-            })
-            .then(data => {
-                const el = document.querySelector(`[user-id="${data.id}"]`);
-                const notifications = data.notifications;
-                if (notifications > 0 && notifications != el.notifications) {
-                    // console.log('Found', data, 'notifications for user ID', data.id);
-                    el.notifications = data.notifications;
-                    el.classList.toggle('updated');
-                } else {
-                    // console.log('No updates');
-                }
-            });
+        const data = updateBadgeNotification(uuid);
+        // const data = fetch(`/cdn/${uuid}.json`)
+        //     .catch(err => console.error(err))
+        //     .then(response => {
+        //         if (!response.ok) {
+        //             throw Error("URL not found");
+        //         } else {
+        //             return response.json();
+        //         }
+        //     })
+        //     .then(data => {
+        //         const el = document.querySelector(`[user-id="${data.id}"]`);
+        //         const notifications = data.notifications;
+        //         if (notifications > 0 && notifications != el.notifications) {
+        //             // console.log('Found', data, 'notifications for user ID', data.id);
+        //             el.notifications = data.notifications;
+        //             el.classList.toggle('updated');
+        //         } else {
+        //             // console.log('No updates');
+        //         }
+        //     });
         updates.push(data);
     }
 
@@ -224,6 +235,30 @@ function updateBadges() {
     Promise.all(updates).then(response => {
         // console.log('Completed all updates:', response);
     });
+}
+
+function updateBadgeNotification(uuid) {
+    // console.log('Do something for', uuid);
+    return fetch(`/cdn/${uuid}.json`)
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.json();
+            }
+        })
+        .then(data => {
+            const el = document.querySelector(`[user-id="${data.id}"]`);
+            const notifications = data.notifications;
+            if (notifications > 0 && notifications != el.notifications) {
+                // console.log('Found', data, 'notifications for user ID', data.id);
+                el.notifications = data.notifications;
+                el.classList.toggle('updated');
+            } else {
+                // console.log('No updates');
+            }
+        });
 }
 
 window.addEventListener('DOMContentLoaded', init);
