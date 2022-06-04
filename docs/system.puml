@@ -1,0 +1,11 @@
+@startuml
+Client -> Server: Send request via API
+Server --> MQ: Send request event
+MQ -> Processor: Route request for processing
+Processor -> CDN: Save static content
+Processor -> MQ: Route response for client
+MQ -> Server: Route response event for notification
+Server -> Client: Send message via WebSockets
+Client -> CDN: Request static content
+CDN -> Client: Return static content
+@enduml

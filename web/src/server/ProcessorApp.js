@@ -2,55 +2,44 @@ const fs = require('fs');
 const path = require('path');
 
 // https://www.npmjs.com/package/sqs-consumer
-const { Consumer } = require('sqs-consumer');
-// const { Producer } = require('sqs-producer');
+const { Producer } = require('sqs-producer');
+const BaseConsumer = require('./BaseConsumer');
 
 class ProcessorApp {
     constructor(config) {
         this.config = config;
         this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
 
-        this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
-        this.users.start();
+        // TODO - Use this to handle user deletion
+        // this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
+        // this.users.start();
 
-        this.notifications = this.createConsumer(config, config.QUEUE_NOTIFICATIONS, msg => { this.notificationHandler(msg); });
-        this.notifications.start();
-        
-        console.log('Consumer initialized!');
-    }
+        this.notificationRequests = new BaseConsumer(
+            config,
+            config.QUEUE_NOTIFICATIONS_REQUESTS,
+            msg => { this.notificationHandler(msg); }
+        );
+        this.notificationRequests.start();
 
-    createConsumer(config, queue, handler) {
-        // console.log(config, queue);
-        const consumer = Consumer.create({
-            queueUrl: config.QUEUE_FULL_URL + queue,
-            handleMessage: handler
-        });
-            
-        consumer.on('error', (err) => {
-            console.error(err.message);
+        this.notificationResponses = Producer.create({
+            queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS_RESPONSES,
+            region: this.config.ZONE
         });
         
-        consumer.on('processing_error', (err) => {
-            console.error(err.message);
-        });
-
-        consumer.on('empty', (err) => {
-            console.error("Queue is empty!");
-        });
-
-        return consumer;
+        console.log('ProcessApp initialized!');
     }
 
+    // TODO: Remove this since we're assuming synchronous CRUD operations
     async userHandler(message) {
         if (message.Body) {
             console.log('Create new user:', message.MessageId, '/', message.Body);
             // console.log(this.config);
 
-            const user = message.Body;
-            const path = this.cdnRoot + `${user}.txt`;
-            const notifications = "0";
+            const payload = JSON.parse(message.Body);
+            const user = payload.id;
+            const path = this.cdnRoot + `${user}.json`;
             try {
-                fs.writeFileSync(path, notifications, { encoding: 'utf-8'});
+                fs.writeFileSync(path, message.Body, { encoding: 'utf-8'});
             } catch(err) {
                 console.error(err)
             }
@@ -64,18 +53,26 @@ class ProcessorApp {
         }
     }
 
+    // This should arguably be updating a database then copying images around for the client,
+    // rather than processing JSON, but not quite there yet..
     async notificationHandler(message) {
         if (message.Body) {
-            console.log('Processed ' + message.MessageId, '/', message.Body);
-            // console.log('Processed message: ' + JSON.stringify(message));
-
             const user = message.Body;
-            const path = this.cdnRoot + `${user}.txt`;
+            const path = this.cdnRoot + `${user}.json`;
             try {
-                let notifications = 1;
-                notifications = fs.readFileSync(path, { encoding: 'utf-8'});
-                notifications = Number(notifications) + 1;
-                fs.writeFileSync(path, `${notifications}`, { encoding: 'utf-8'});
+                const payload = fs.readFileSync(path, { encoding: 'utf-8'});
+                const data = JSON.parse(payload);
+                data.notifications += 1;
+                fs.writeFileSync(path, JSON.stringify(data), { encoding: 'utf-8'});
+
+                // Send message!
+                const params = {
+                    id: 'message' + user, // Assume this could be a rootId?
+                    body: user,
+                };
+        
+                this.notificationResponses.send([params]);
+        
             } catch(err) {
                 // TODO: Obviously not ready for primetime
                 console.error(err)

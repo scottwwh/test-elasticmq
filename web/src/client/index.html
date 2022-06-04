@@ -55,146 +55,33 @@ user-card.updated:before {
 }
 
         </style>
-        <script type="module">
-
-import { UserCard } from './elements/UserCard.js';
-import names from './names.js';
-
-let users = [];
-
-function init(e) {
-
-    // Not required atm, since users aren't yet visible until
-    // they are created, which resets their notifications
-    // updateBadges();
- 
-    // TBD: Replace with sockets/similar?
-    setInterval(updateBadges, 10000);
-
-    document.querySelector('button.add-user').addEventListener('click', addUser);
-    document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
-}
-
-function addUser(e) {
-    document.querySelector('button.send-notification-random').disabled = false;
-
-    const id = users.length;
-    const max = users.length;
-    const el = document.createElement('user-card');
-    el.setAttribute('user-id', max);
-    el.setAttribute('name', names.getRandom());
-
-    users.push(el);
-    document.querySelector('.user-cards').appendChild(el);
-
-    const data = fetch(`/api/user/${id}`)
-        .catch(err => console.error(err))
-        .then(response => {
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                return response.text();
-            }
-        })
-        .then(data => {
-            // This whole thing should probably use a POST and receive a GUID
-            console.log('User created?', data);
-        });
-}
-
-function sendNotificationsRandom(e) {
-    const button = e.currentTarget;
-    button.disabled = true;
-
-    // const total = Math.floor(Max.random() * users.length) + 1;
-    if (users.length === 0) return;
-
-    // Pre-clean since events/intervals on web component are still not perfect
-    users.forEach(el => {
-        el.classList.remove('active', 'notified');
-    });
-
-    const intervalTotal = Math.floor(Math.random() * 80) + 20;
-    // console.log(`Send ${intervalTotal} notifications`);
-
-    let intervalCount = 0;
-    let interval = setInterval(e => {
-        if (intervalCount == intervalTotal) {
-            clearInterval(interval);
-
-            button.disabled = false;
-        } else {
-            const i = Math.floor(Math.random() * users.length);
-            sendNotification(i);
-
-            intervalCount++;
-        }
-    }, 100);
-}
-
-function sendNotification(id) {
-    const el = users[id];
-
-    // Trigger CSS transition
-    el.dispatchEvent(new Event('notification-request'));
-
-    const data = fetch(`/api/notification/${id}`)
-        .catch(err => console.error(err))
-        .then(response => {
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                return response.text();
-            }
-        })
-        .then(data => {
-            // This whole thing should probably use a POST and receive a GUID
-            console.log('Notification sent:', data);
-        });
-}
-
-function updateBadges() {
-    // TODO: Filter users whose .notifications property has changed
-    console.log('Udpate badges for', users.length, 'users');
-    if (users.length === 0) return ;
-
-    for (var i = 0; i < users.length; i++) {
-        const id = i;
-        const data = fetch(`/cdn/${id}.txt`)
-            .catch(err => console.error(err))
-            .then(response => {
-                if (!response.ok) {
-                    throw Error("URL not found");
-                } else {
-                    return response.text();
-                }
-            })
-            .then(data => {
-                const el = document.querySelector(`[user-id="${id}"]`);
-                if (data > 0 && data != el.notifications) {
-                    // console.log('Found', data, 'notifications for user ID', id);
-                    el.notifications = data;
-                    el.classList.toggle('updated');
-                }
-            });
-    }
-}
-
-window.addEventListener('DOMContentLoaded', init);
-
-        </script>
+        <script type="module" src="main.js"></script>
     </head>
     <body>
         <h1>Hello world</h1>
+
+        <div class="loading" style="font-size: 400%; color: #ccc; display: none;">
+            <!--
+                Ref:
+                    https://html.spec.whatwg.org/multipage/named-characters.html#named-character-references
+                    https://medium.com/@eokinch/unicode-characters-in-html-css-a55c77fd3570
+
+                \U+021BB
+            -->
+            &circlearrowright;
+        </div>
+
         <nav style="float: left">
             <!-- Doesn't work atm -->
             <!-- <a href="/api/notification">Notification</a> -->
 
             <button class="add-user">Add user</button>
         </nav>
+
         <nav style="text-align: right;">
             <button class="send-notification-random" disabled>Send random notifications</button>
         </nav>
+        
         <section class="user-cards"></section>
     </body>
 </html>
