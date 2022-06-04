@@ -4,7 +4,7 @@
 
 I started this repo to test ElasticMQ as a drop-in replacement for SQS.
 
-Work started [based on a simplified version of this tutorial](https://github.com/alxolr/elasticmq-node-tutorial) but quickly got sidetracked proofing out a simple UI for a simple content pipeline to generate notifications asynchronously.
+Work started [based on a simplified version of this tutorial](https://github.com/alxolr/elasticmq-node-tutorial) but quickly got sidetracked proofing out UI for a simple content pipeline to generate notifications asynchronously.
 
 I'm using [ElasticMQ's default Docker image](https://github.com/softwaremill/elasticmq) which supports ARM 64.
 

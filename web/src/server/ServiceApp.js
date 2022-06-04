@@ -24,6 +24,7 @@ const path = require('path');
 //-- Web sockets --//
 
 
+// Move this into its own class
 const wss = new WebSocket.Server({ port: 7071 });
 const clients = new Map();
 
@@ -50,6 +51,7 @@ wss.on('connection', (ws) => {
         clients.delete(ws);
     });
 
+    // TODO: Convert to sending "connected" notification for the UI?
     // const foo = {
     //     status: "INITIALIZED BABY!!!",
     //     uuid
@@ -96,7 +98,8 @@ class ServiceApp {
     async init() {
         console.log(this.config);
 
-        // Use this to test queue status?
+        // TODO: Use this to test queue status
+        //
         // this.queue = new SQS({
         //     endpoint: this.config.QUEUE_BASE_URL,
         //     region: this.config.ZONE, // This does not matter

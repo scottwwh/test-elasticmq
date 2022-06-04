@@ -38,7 +38,6 @@ class ProcessorApp {
             const payload = JSON.parse(message.Body);
             const user = payload.id;
             const path = this.cdnRoot + `${user}.json`;
-            // const notifications = "0";
             try {
                 fs.writeFileSync(path, message.Body, { encoding: 'utf-8'});
             } catch(err) {
@@ -54,6 +53,8 @@ class ProcessorApp {
         }
     }
 
+    // This should arguably be updating a database then copying images around for the client,
+    // rather than processing JSON, but not quite there yet..
     async notificationHandler(message) {
         if (message.Body) {
             const user = message.Body;
