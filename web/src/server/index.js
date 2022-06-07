@@ -34,33 +34,22 @@ async function list(ctx) {
 };
 
 // Get data for specific user
-// TODO: Move to ServiceApp
 async function getUser(ctx) {
   const id = ctx.params.id;
   try {
-    ctx.response.body = "ACK";
-    const userDataFile = path.join(__dirname, '..', config.DATA, '/', `${id}.json`);
-    const userData = fs.readFileSync(userDataFile, { encoding: 'utf-8' });
-    console.log(userData);
-    ctx.response.body = JSON.parse(userData);
-
+    const data = await service.getUser(id);
+    ctx.response.body = data;
   } catch (err) {
     console.log(err);
     ctx.response.body = "NOK";
   }
 };
 
-// TODO: Move to ServiceApp
+// Get list of all users
 async function getAllUsers(ctx) {
-  const dataRoot = path.join(__dirname, '..', config.DATA);
-
-  // Strip .json extension to leave just the GUID
-  const dir = fs.readdirSync(dataRoot)
-    .filter(file => {return file.indexOf('.json') > -1})
-    .map(file => file.split('.')[0]);
-
   try {
-    ctx.response.body = dir;
+    const users = await service.getAllUsers();
+    ctx.response.body = users;
   } catch (err) {
     console.log(err);
     ctx.response.body = "NOK";

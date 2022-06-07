@@ -180,6 +180,21 @@ class ServiceApp {
         }
     }
 
+    async getUser(id) {
+        const file = this.dataRoot + `${id}.json`;
+        const data = fs.readFileSync(file, { encoding: 'utf-8' });
+        return JSON.parse(data);
+    }
+
+    async getAllUsers() {
+        // Strip .json extension to leave just the GUID
+        const users = fs.readdirSync(this.dataRoot)
+          .filter(file => {return file.indexOf('.json') > -1})
+          .map(file => file.split('.')[0]);
+
+        return users;
+    }
+
     async sendNotification(id) {
         const messages = [];
         const params = {
