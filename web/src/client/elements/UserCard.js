@@ -1,7 +1,7 @@
 import {LitElement, html, css} from 'https://unpkg.com/lit-element@2.2.1/lit-element.js?module';
 
 export class UserCard extends LitElement {
-  static styles = css`p { color: blue }`;
+  static styles = css`p { margin: 0.5rem; padding: 0; }`;
 
   static get properties() {
     return {
@@ -12,10 +12,9 @@ export class UserCard extends LitElement {
         reflect: true,
         converter: {
           toAttribute: value => {
-            const max = 99;
+            const max = 9;
             const num = parseInt(value);
             if (num === 0) {
-              console.log('Return blank..');
               return '';
             } else if (num > max) {
               return '..';
@@ -68,9 +67,17 @@ export class UserCard extends LitElement {
     }
   }
 
+  handleClear(e) {
+    this.notifications = 0;
+    this.dispatchEvent(new Event('notification-update'));
+  }
+
   render() {
     const names = this.name.split(' ');
-    return html`<span>${names[0]}<br />${names[1]}</span>`;
+    const firstName = names[0];
+    const lastName = names[1] || " ";
+    return html`<p><span>${firstName}<br />${lastName}</span></p>
+      <p><button @click="${this.handleClear}">Clear</button></p>`;
   }
 }
 

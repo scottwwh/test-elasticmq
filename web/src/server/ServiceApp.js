@@ -93,6 +93,7 @@ class ServiceApp {
     constructor(config) {
         this.config = config;
         this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
+        this.dataRoot = path.join(__dirname, '..', this.config.DATA);
     }
 
     async init() {
@@ -150,30 +151,50 @@ class ServiceApp {
             notifications: 0
         };
 
-        const user = payload.id;
-        const path = this.cdnRoot + `${user}.json`;
+        const path = this.dataRoot + `${payload.id}.json`;
 
         // TODO: Check to verify whether user has already been created,
         // and make sure that front-end is not trying to create the user again!
         try {
             fs.writeFileSync(path, JSON.stringify(payload), { encoding: 'utf-8'});
-            return user;
+
+
+            // Send notification
+            const messages = [];
+            const params = {
+                id: 'message' + payload.id, // Assume this could be a rootId?
+                body: {
+                    type: 'notification-create',
+                    id: payload.id
+                }
+            };
+            params.body = JSON.stringify(params.body);
+    
+            messages.push(params);
+            await this.notificationRequests.send(messages);
+
+
+            return payload.id;
         } catch(err) {
             console.error(err)
         }
     }
 
-    async sendMessage(id) {
+    async sendNotification(id) {
         const messages = [];
         const params = {
             id: 'message' + id, // Assume this could be a rootId?
-            body: `${id}`,
+            body: {
+                type: 'notification-add',
+                id
+            },
 
             // Causes an exception?
             // messageAttributes: {
             //   attr1: { DataType: 'Boolean', BooleanValue: valid }
             // }
         };
+        params.body = JSON.stringify(params.body);
 
         // Throws an exception when pushed into the queue
         // const message = new Message(params);
@@ -181,6 +202,35 @@ class ServiceApp {
         messages.push(params);
 
         await this.notificationRequests.send(messages);
+    }
+
+    async updateNotifications(id) {
+        const path = this.dataRoot + `${id}.json`;
+        try {
+            // This seems very wasteful, because the same thing is happening in ProcessorApp?
+            const userFile = fs.readFileSync(path, { encoding: 'utf-8' });
+            const payload = JSON.parse(userFile);
+            payload.notifications = 0;
+            fs.writeFileSync(path, JSON.stringify(payload), { encoding: 'utf-8'});
+
+            const messages = [];
+            const params = {
+                id: 'message' + id, // Assume this could be a rootId?
+                body: {
+                    type: 'notification-clear',
+                    id
+                }
+            };
+            params.body = JSON.stringify(params.body);
+    
+            messages.push(params);
+            await this.notificationRequests.send(messages);
+
+            return payload;
+      
+        } catch (err) {
+          throw err;
+        }
     }
 }
 

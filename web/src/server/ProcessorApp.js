@@ -9,10 +9,8 @@ class ProcessorApp {
     constructor(config) {
         this.config = config;
         this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
-
-        // TODO - Use this to handle user deletion
-        // this.users = this.createConsumer(config, config.QUEUE_USERS, msg => { this.userHandler(msg) });
-        // this.users.start();
+        this.badgesRoot = path.join(__dirname, '..', this.config.WEB_PUBLIC, 'badges/');
+        this.dataRoot = path.join(__dirname, '..', this.config.DATA);
 
         this.notificationRequests = new BaseConsumer(
             config,
@@ -29,49 +27,50 @@ class ProcessorApp {
         console.log('ProcessApp initialized!');
     }
 
-    // TODO: Remove this since we're assuming synchronous CRUD operations
-    async userHandler(message) {
-        if (message.Body) {
-            console.log('Create new user:', message.MessageId, '/', message.Body);
-            // console.log(this.config);
-
-            const payload = JSON.parse(message.Body);
-            const user = payload.id;
-            const path = this.cdnRoot + `${user}.json`;
-            try {
-                fs.writeFileSync(path, message.Body, { encoding: 'utf-8'});
-            } catch(err) {
-                console.error(err)
-            }
-
-            Promise.resolve(true);
-        } else {
-            console.log('Invalid content:', message);
-
-            // Messages don't seem to be cleared out with Promise.reject or errors, so use this
-            Promise.resolve(false);
-        }
+    async updateBadge(id, notifications) {
+        // Copy relevant badge
+        const number = (notifications >= 10) ? 10 : notifications ;
+        fs.copyFileSync(this.badgesRoot + `${number}.svg`, this.cdnRoot + `${id}.svg`)
     }
 
     // This should arguably be updating a database then copying images around for the client,
     // rather than processing JSON, but not quite there yet..
     async notificationHandler(message) {
         if (message.Body) {
-            const user = message.Body;
-            const path = this.cdnRoot + `${user}.json`;
+            const payload = JSON.parse(message.Body);
+            const id = payload.id;
+            const path = this.dataRoot + `${id}.json`;
+
+            if (payload.type == 'notification-create') {
+                this.updateBadge(id, 0);
+                Promise.resolve(true);
+                return;
+            }
+
             try {
-                const payload = fs.readFileSync(path, { encoding: 'utf-8'});
-                const data = JSON.parse(payload);
-                data.notifications += 1;
+                // Udpate data
+                const file = fs.readFileSync(path, { encoding: 'utf-8'});
+                const data = JSON.parse(file);
+
+                if (payload.type == 'notification-add') {
+                    data.notifications += 1;
+                } else if (payload.type == 'notification-clear') {
+                    data.notifications = 0;
+                }
+
                 fs.writeFileSync(path, JSON.stringify(data), { encoding: 'utf-8'});
 
-                // Send message!
-                const params = {
-                    id: 'message' + user, // Assume this could be a rootId?
-                    body: user,
-                };
-        
-                this.notificationResponses.send([params]);
+                this.updateBadge(id, data.notifications);
+
+                // Send response
+                if (payload.type == 'notification-add') {
+                    const params = {
+                        id: 'message' + id, // Assume this could be a rootId?
+                        body: id,
+                    };
+            
+                    this.notificationResponses.send([params]);
+                }
         
             } catch(err) {
                 // TODO: Obviously not ready for primetime

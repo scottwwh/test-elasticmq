@@ -10,6 +10,7 @@
 }
 
 user-card {
+    --url: url("/images/0.svg");
     display: inline-block;
     padding: 1rem;
     margin: 0.5rem;
@@ -33,7 +34,18 @@ user-card.active.notified {
 }
 
 user-card:before {
-    content: attr(notifications);
+    /* Appropriate for SVGs, but these flicker on update */
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    content: " ";
+    background-repeat: no-repeat;
+    background-image: var(--url);
+    background-size: auto auto;
+    width: 25px;
+    height: 25px;
+
+    /* content: attr(notifications);
     background-color: maroon;
     color: #fff;
     position: absolute;
@@ -46,7 +58,8 @@ user-card:before {
     line-height: 2rem;
     text-align: center;
     vertical-align: baseline;
-    border-radius: 1rem;
+    border-radius: 1rem; */
+
     transition: transform 0.5s;
 }
 

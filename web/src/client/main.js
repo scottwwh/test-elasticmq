@@ -64,7 +64,7 @@ async function connectToServer() {
 function addUser(e) {
     const name = names.getRandom();
 
-    fetch(`/api/user/`, {
+    fetch(`/api/users/`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -94,7 +94,7 @@ function addUser(e) {
  * Retrieve current users to generate cards
  */ 
 async function addUsers() {
-    const data = await fetch(`/api/user/`)
+    const data = await fetch(`/api/users/`)
         .catch(err => console.error(err))
         .then(response => {
             if (!response.ok) {
@@ -117,11 +117,12 @@ function addUserCard(id) {
 
     const el = document.createElement('user-card');
     el.setAttribute('user-id', id);
+    el.addEventListener('notification-update', updateNotifications);
 
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
 
-    return fetch(`/api/user/${id}`)
+    return fetch(`/api/users/${id}`)
         .catch(err => console.error(err))
         .then(response => {
             if (!response.ok) {
@@ -180,7 +181,7 @@ function sendNotification(index) {
     el.dispatchEvent(new Event('notification-request'));
 
     const uuid = el.getAttribute('user-id');
-    fetch(`/api/notification/${uuid}`)
+    fetch(`/api/notifications/${uuid}`)
         .catch(err => console.error(err))
         .then(response => {
             if (!response.ok) {
@@ -191,6 +192,41 @@ function sendNotification(index) {
         })
         .then(data => {
             console.log('Notification sent:', data);
+        });
+}
+
+function updateNotifications(e) {
+    const el = e.currentTarget;
+    const id = el.getAttribute('user-id');
+
+    fetch(`/api/notifications/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(
+                {
+                    notifications: 0    
+                }
+            )
+        })
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.json();
+            }
+        })
+        .then(data => {
+            // console.log('Notifications updated?', data, el);
+
+            // TODO: Fix this, cuz it does not work!
+            el.notifications = 0;
+
+            // Hack
+            el.style = ``;
         });
 }
 
@@ -218,32 +254,23 @@ function updateBadges() {
 /**
  * Update badge notification based on JSON
  * 
- * TODO: Replace this with an image generator in ProcessorApp, which _should_ render all of this moot
- * 
- * @param {*} uuid 
- * @returns 
+ * @param {*} uuid
+ * @returns
  */
 function updateBadgeNotification(uuid) {
-    return fetch(`/cdn/${uuid}.json`)
-        .catch(err => console.error(err))
-        .then(response => {
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                // What happens when JSON is invalid?
-                return response.json();
-            }
-        })
-        .then(data => {
-            const el = document.querySelector(`[user-id="${data.id}"]`);
+    const el = document.querySelector(`[user-id="${uuid}"]`);
 
-            // TODO: Replace this with ? notation for if-set
-            const notifications = data.notifications;
-            if (notifications > 0 && notifications != el.notifications) {
-                el.notifications = data.notifications;
-                el.classList.toggle('updated');
-            }
-        });
+    // This is actually quite stupid given that the CSS works perfectly for socket updates
+    el.style = `--url: url('cdn/${uuid}.svg?v=${new Date().getTime()}')`;
+
+    // TODO: Implement high/low count to determine whether a user has already hit 10
+    // and thus should display an animation
+    //
+    // const notifications = data.notifications;
+    // if (notifications > 0 && notifications != el.notifications) {
+    //     el.notifications = data.notifications;
+        el.classList.toggle('updated');
+    // }
 }
 
 window.addEventListener('DOMContentLoaded', init);
