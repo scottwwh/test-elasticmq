@@ -27,7 +27,7 @@ class ProcessorApp {
         console.log('ProcessApp initialized!');
     }
 
-    async updateBadge(id, notifications) {
+    async updateNotificationBadge(id, notifications) {
         // Copy relevant badge
         const number = (notifications >= 10) ? 10 : notifications ;
         fs.copyFileSync(this.badgesRoot + `${number}.svg`, this.cdnRoot + `${id}.svg`)
@@ -35,14 +35,17 @@ class ProcessorApp {
 
     // This should arguably be updating a database then copying images around for the client,
     // rather than processing JSON, but not quite there yet..
+    //
+    // TODO: Call specific async methods for each notification type
     async notificationHandler(message) {
         if (message.Body) {
             const payload = JSON.parse(message.Body);
+            const type = payload.type;
             const id = payload.id;
             const path = this.dataRoot + `${id}.json`;
 
             if (payload.type == 'notification-create') {
-                this.updateBadge(id, 0);
+                await this.updateNotificationBadge(id, 0);
                 Promise.resolve(true);
                 return;
             }
@@ -60,7 +63,7 @@ class ProcessorApp {
 
                 fs.writeFileSync(path, JSON.stringify(data), { encoding: 'utf-8'});
 
-                this.updateBadge(id, data.notifications);
+                await this.updateNotificationBadge(id, data.notifications);
 
                 // Send response
                 if (payload.type == 'notification-add') {

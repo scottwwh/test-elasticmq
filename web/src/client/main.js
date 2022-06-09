@@ -14,6 +14,7 @@ async function init(e) {
 
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
+    document.querySelector('button.clear-notifications').addEventListener('click', updateNotifications);
 
     await initWebSocket();
 }
@@ -196,10 +197,12 @@ function sendNotification(index) {
 }
 
 function updateNotifications(e) {
-    const el = e.currentTarget;
-    const id = el.getAttribute('user-id');
+    // Glob all requests if request comes from outside of a user card
+    const USER_CARD = 'user-card';
+    const els = (e.currentTarget.nodeName.toLowerCase() === USER_CARD) ? [e.currentTarget] : [...document.querySelectorAll('user-card')] ;
+    const ids = els.map(el => el.getAttribute('user-id'));
 
-    fetch(`/api/notifications/${id}`, {
+    fetch(`/api/notifications/${ids}`, {
             method: 'PATCH',
             headers: {
                 'Accept': 'application/json',
@@ -221,12 +224,13 @@ function updateNotifications(e) {
         })
         .then(data => {
             // console.log('Notifications updated?', data, el);
+            els.forEach(el => {
+                // TODO: Fix this, cuz it does not work!
+                // el.notifications = 0;
 
-            // TODO: Fix this, cuz it does not work!
-            el.notifications = 0;
-
-            // Hack
-            el.style = ``;
+                // Hack
+                el.style = ``;
+            })
         });
 }
 

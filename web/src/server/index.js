@@ -85,18 +85,21 @@ async function sendNotification(ctx) {
   }
 };
 
+// Set notifications to 0
 async function updateNotifications(ctx) {
   try {
-    let data = {};
+    let data = [];
     if (ctx.params && ctx.params.id) {
-      
-      // Set notifications to 0
-      data = await service.updateNotifications(ctx.params.id);
+      const ids = ctx.params.id.split(',');
+      for (var i = 0; i < ids.length; i++) {
+        const res = await service.updateNotifications(ids[i]);
+        data.push(res);
+      }
     }
 
     ctx.response.body = {
       status: "ACK",
-      notifications: data.notifications
+      notifications: data
     };
   } catch (err) {
     console.log(err);

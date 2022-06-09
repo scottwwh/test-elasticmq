@@ -220,9 +220,9 @@ class ServiceApp {
     }
 
     async updateNotifications(id) {
-        const path = this.dataRoot + `${id}.json`;
         try {
             // This seems very wasteful, because the same thing is happening in ProcessorApp?
+            const path = this.dataRoot + `${id}.json`;
             const userFile = fs.readFileSync(path, { encoding: 'utf-8' });
             const payload = JSON.parse(userFile);
             payload.notifications = 0;
