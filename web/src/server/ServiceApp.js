@@ -2,7 +2,7 @@
 // import { SQS } from 'aws-sdk';
 
 // Not really necessary at the moment, but good to keep around
-const { SQS } = require('aws-sdk');
+// const { SQS } = require('aws-sdk');
 
 // const config = require('./src/config');
 const Message = require('./Message');
@@ -114,12 +114,14 @@ class ServiceApp {
             queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS_REQUESTS,
             region: this.config.ZONE
         });
+        // console.log('requests:', this.notificationRequests);
 
         this.notificationResponses = new BaseConsumer(
             this.config,
             this.config.QUEUE_NOTIFICATIONS_RESPONSES,
             msg => { this.notificationHandler(msg); }
         );
+
         this.notificationResponses.start();
     }
 
@@ -171,8 +173,12 @@ class ServiceApp {
             params.body = JSON.stringify(params.body);
     
             messages.push(params);
-            await this.notificationRequests.send(messages);
 
+            try {
+                await this.notificationRequests.send(messages);
+            } catch(err) {
+                console.error('SQS error');
+            }
 
             return payload.id;
         } catch(err) {

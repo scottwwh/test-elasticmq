@@ -16,8 +16,8 @@ services:
     build: ./web/ # Exclude when deployed
     restart: on-failure
     ports:
-      - "3000:3000"
-      - "7071:7071"
+      - "3000:3000" # API and client
+      - "7071:7071" # Websockets
     environment:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY

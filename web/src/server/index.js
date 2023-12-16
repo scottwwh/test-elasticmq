@@ -68,7 +68,9 @@ async function addUser(ctx) {
     };
   } catch (err) {
     console.log(err);
-    ctx.response.body = "NOK";
+    ctx.response.body = {
+      status: "NOK"
+    };
   }
 };
 

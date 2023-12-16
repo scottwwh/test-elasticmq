@@ -1,5 +1,5 @@
 
-import { UserCard } from './elements/UserCard.js';
+import { UserCard } from './../elements/UserCard.js';
 import names from './names.js';
 
 let users = [];
@@ -18,7 +18,7 @@ async function init(e) {
     document.querySelector('button.modify-notifications').addEventListener('click', e => {
         const els = [...document.querySelectorAll('user-card')];
         els.forEach(el => {
-            el.classList.add('supah');
+            el.classList.toggle('supah');
         });
     });
 
@@ -119,7 +119,12 @@ async function initUsers() {
     return Promise.all(users);
 }
 
-function addUserCard(id) {
+function addUserCard(id, name) {
+    if (!id) {
+        console.log(id, name, 'ID is undefined, something went wrong on the server..')
+        return;
+    }
+
     document.querySelector('button.send-notification-random').disabled = false;
 
     const el = document.createElement('user-card');
@@ -132,6 +137,7 @@ function addUserCard(id) {
     return fetch(`/api/users/${id}`)
         .catch(err => console.error(err))
         .then(response => {
+            // console.log('User data:', response);
             if (!response.ok) {
                 throw Error("URL not found");
             } else {
@@ -139,6 +145,7 @@ function addUserCard(id) {
             }
         })
         .then(data => {
+            
             // Update card with name - this seems a bit backwards for new users?
             el.setAttribute('name', data.name);
         });
@@ -285,7 +292,7 @@ function updateBadgeNotification(uuid) {
         
         // Use of initialization only!
         // This is actually quite stupid given that the CSS works perfectly for socket updates
-        el.style = `--url: url('cdn/${uuid}.svg?v=${new Date().getTime()}')`;
+        el.style = `--url: url('../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
 
         // // This should be triggered once the image and JSON are fully loaded, I believe?
         // el.classList.add('supah');

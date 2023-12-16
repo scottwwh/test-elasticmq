@@ -1,99 +1,8 @@
 <html>
     <head>
         <title>Hello world</title>
-        <style type="text/css" media="screen">
-
-.user-cards {
-    margin-top: 1rem;
-    padding: 0.25rem;
-    border-top: 1px solid #eee;
-}
-
-user-card {
-    --url: url("/images/0.svg");
-    display: inline-block;
-    padding: 1rem;
-    margin: 0.5rem;
-    background-color: #ddd;
-    border: 2px solid #aaa;
-    border-radius: 1.5rem;
-    width: 7rem;
-    text-align: center;
-    position: relative;
-}
-
-user-card.active {
-    background: gold;
-    border-color: orange;
-}
-
-user-card.active.notified {
-    transition: all 0.5s;
-    background-color: #ddd;
-    border-color: #aaa;
-}
-
-user-card:before {
-    /* Appropriate for SVGs, but these flicker on update */
-    position: absolute;
-    top: 0.25rem;
-    right: 0.25rem;
-    content: " ";
-    background-repeat: no-repeat;
-    background-image: var(--url);
-    background-size: auto auto;
-    width: 25px;
-    height: 25px;
-
-    /* content: attr(notifications);
-    background-color: maroon;
-    color: #fff;
-    position: absolute;
-    font-family: Arial;
-    font-size: 0.75rem;
-    font-weight: bold;
-    top: 0.25rem;
-    right: 0.25rem;
-    width: 2rem;
-    line-height: 2rem;
-    text-align: center;
-    vertical-align: baseline;
-    border-radius: 1rem; */
-
-    transition: transform 0.5s;
-}
-
-user-card.supah:before {
-    /* position: absolute; */
-    /* top: 0.25rem;
-    right: 0.25rem; */
-
-    /* width: 2rem;
-    line-height: 2rem; */
-
-    content: attr(notifications);
-    background-color: maroon;
-    background-image: none;
-
-    color: #fff;
-    font-family: Arial;
-    font-size: 0.95rem;
-    font-weight: bold;
-    /* height: 25px; */
-    width: 25px;
-    line-height: 2rem;
-    text-align: center;
-    vertical-align: baseline;
-    border-radius: 12.5px;
-}
-
-/* user-card.updated:before { */
-user-card.updated:before {
-    transform: rotateY(359deg);
-}
-
-        </style>
-        <script type="module" src="main.js"></script>
+        <link href="./css/main.css" rel="stylesheet" />
+        <script type="module" src="js/main.js"></script>
     </head>
     <body>
         <h1>Hello world</h1>
@@ -123,6 +32,8 @@ user-card.updated:before {
             <button class="modify-notifications">Modify notification style</button>
         </nav>
         
-        <section class="user-cards"></section>
+        <article>
+            <section class="user-cards"></section>
+        </article>
     </body>
 </html>

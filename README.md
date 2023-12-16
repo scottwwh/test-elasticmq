@@ -33,10 +33,10 @@ Next, copy `.env.reference` to `.env` and configure values for AWS.
 Finally, build/launch like so:
 ```
 # Build web services/UI
-docker-compose build web
+docker compose build web
 
 # Launch containers
-docker-compose up
+docker compose up
 ```
 
 Once launched, the following URLs will be available:
