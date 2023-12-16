@@ -6,8 +6,8 @@ let users = [];
 
 async function init(e) {
 
-    const initUsers = addUsers();
-    initUsers.then(data => {
+    const users = initUsers();
+    users.then(data => {
         // console.log('Loaded all users');
         updateBadges();
     });
@@ -15,6 +15,12 @@ async function init(e) {
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
     document.querySelector('button.clear-notifications').addEventListener('click', updateNotifications);
+    document.querySelector('button.modify-notifications').addEventListener('click', e => {
+        const els = [...document.querySelectorAll('user-card')];
+        els.forEach(el => {
+            el.classList.add('supah');
+        });
+    });
 
     await initWebSocket();
 }
@@ -94,7 +100,7 @@ function addUser(e) {
 /**
  * Retrieve current users to generate cards
  */ 
-async function addUsers() {
+async function initUsers() {
     const data = await fetch(`/api/users/`)
         .catch(err => console.error(err))
         .then(response => {
@@ -178,6 +184,11 @@ function sendNotificationsRandom(e) {
 function sendNotification(index) {
     const el = users[index];
 
+    // TODO: Figure out if this can glitch based on JSON not being loaded yet?
+    //
+    // This should be triggered once the image and JSON are fully loaded, I believe?
+    el.classList.add('supah');
+
     // Trigger CSS transition
     el.dispatchEvent(new Event('notification-request'));
 
@@ -201,6 +212,7 @@ function updateNotifications(e) {
     const USER_CARD = 'user-card';
     const els = (e.currentTarget.nodeName.toLowerCase() === USER_CARD) ? [e.currentTarget] : [...document.querySelectorAll('user-card')] ;
     const ids = els.map(el => el.getAttribute('user-id'));
+    const notifications = 0;
 
     fetch(`/api/notifications/${ids}`, {
             method: 'PATCH',
@@ -210,7 +222,7 @@ function updateNotifications(e) {
             },
             body: JSON.stringify(
                 {
-                    notifications: 0    
+                    notifications
                 }
             )
         })
@@ -223,15 +235,16 @@ function updateNotifications(e) {
             }
         })
         .then(data => {
-            // console.log('Notifications updated?', data, el);
-            els.forEach(el => {
-                // TODO: Fix this, cuz it does not work!
-                // el.notifications = 0;
-
-                // Hack
-                el.style = ``;
-            })
+            console.log('Notifications updated?', data, els);
         });
+
+    els.forEach(el => {
+        // TODO: Fix this, cuz it does not work!
+        // el.notifications = notifications;
+
+        // Hack
+        el.style = ``;
+    })
 }
 
 /**
@@ -263,9 +276,20 @@ function updateBadges() {
  */
 function updateBadgeNotification(uuid) {
     const el = document.querySelector(`[user-id="${uuid}"]`);
+    if (el.classList.contains('supah')) {
+        // console.log('yoyoyo');
+        el.notifications++;
 
-    // This is actually quite stupid given that the CSS works perfectly for socket updates
-    el.style = `--url: url('cdn/${uuid}.svg?v=${new Date().getTime()}')`;
+    } else {
+        // console.log('hi?');
+        
+        // Use of initialization only!
+        // This is actually quite stupid given that the CSS works perfectly for socket updates
+        el.style = `--url: url('cdn/${uuid}.svg?v=${new Date().getTime()}')`;
+
+        // // This should be triggered once the image and JSON are fully loaded, I believe?
+        // el.classList.add('supah');
+    }
 
     // TODO: Implement high/low count to determine whether a user has already hit 10
     // and thus should display an animation
@@ -273,6 +297,10 @@ function updateBadgeNotification(uuid) {
     // const notifications = data.notifications;
     // if (notifications > 0 && notifications != el.notifications) {
     //     el.notifications = data.notifications;
+
+        // el.notifications++;
+        // el.notifications = 6;
+
         el.classList.toggle('updated');
     // }
 }

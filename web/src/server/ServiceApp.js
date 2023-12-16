@@ -59,20 +59,20 @@ wss.on('connection', (ws) => {
     // wsBroadcastMessage(foo);
 
     // TODO: Clear the interval if connection is closed (currently causing a cascade of overlapping messages in the beginning)
-    let i = 0;
-    let interval = setInterval(() => {
-        i++;
-        if (i <= 10) {
-            const data = {
-                status: `Still running`,
-                number: i
-            }
-            wsBroadcastMessage(data);
-        } else {
-            clearInterval(interval);
-            i = 0;
-        }
-    }, 500);
+    // let i = 0;
+    // let interval = setInterval(() => {
+    //     i++;
+    //     if (i <= 10) {
+    //         const data = {
+    //             status: `Still running`,
+    //             number: i
+    //         }
+    //         wsBroadcastMessage(data);
+    //     } else {
+    //         clearInterval(interval);
+    //         i = 0;
+    //     }
+    // }, 500);
 });
 
 function wsBroadcastMessage(data) {

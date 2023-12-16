@@ -29,7 +29,7 @@ export class UserCard extends LitElement {
 
   constructor() {
     super();
-    this.name = 'Anonymous';
+    this.name = 'Anonymous &nbsp;';
     this.notifications = '';
     this.notificationTime = null;
     this.notificationInterval = null;

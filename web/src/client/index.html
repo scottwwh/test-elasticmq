@@ -63,6 +63,31 @@ user-card:before {
     transition: transform 0.5s;
 }
 
+user-card.supah:before {
+    /* position: absolute; */
+    /* top: 0.25rem;
+    right: 0.25rem; */
+
+    /* width: 2rem;
+    line-height: 2rem; */
+
+    content: attr(notifications);
+    background-color: maroon;
+    background-image: none;
+
+    color: #fff;
+    font-family: Arial;
+    font-size: 0.95rem;
+    font-weight: bold;
+    /* height: 25px; */
+    width: 25px;
+    line-height: 2rem;
+    text-align: center;
+    vertical-align: baseline;
+    border-radius: 12.5px;
+}
+
+/* user-card.updated:before { */
 user-card.updated:before {
     transform: rotateY(359deg);
 }
@@ -94,6 +119,8 @@ user-card.updated:before {
         <nav style="text-align: right;">
             <button class="send-notification-random" disabled>Send random notifications</button>
             <button class="clear-notifications">Clear all notifications</button>
+            |
+            <button class="modify-notifications">Modify notification style</button>
         </nav>
         
         <section class="user-cards"></section>
