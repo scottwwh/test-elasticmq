@@ -18,12 +18,16 @@ app.use(bodyParser());
 app.use(serve(webRoot));
 
 router.get('/', list)
+
   // Users
   .post('/api/users/', addUser)
   .get('/api/users/', getAllUsers)
   .get('/api/users/:id', getUser)
+
   // Notifications
-  .get('/api/notifications/:id', sendNotification)
+  //
+  // TODO: Change this to post?
+  .get('/api/notifications/:ids', sendNotification)
   .patch('/api/notifications/:id', updateNotifications)
 
 // Display home page
@@ -74,10 +78,11 @@ async function addUser(ctx) {
   }
 };
 
+// TODO: Adapt this to expect a pair of UUIDs
 async function sendNotification(ctx) {
   try {
-    if (ctx.params && ctx.params.id) {
-      await service.sendNotification(ctx.params.id);
+    if (ctx.params && ctx.params.ids) {
+      await service.sendNotification(ctx.params.ids);
     }
 
     ctx.response.body = "ACK";

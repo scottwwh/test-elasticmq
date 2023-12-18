@@ -201,13 +201,17 @@ class ServiceApp {
         return users;
     }
 
-    async sendNotification(id) {
+    async sendNotification(ids) {
+        // 0 = sender, 1 = recipient
+        const uuids = ids.split(':');
+        // console.log(uuids);
+
         const messages = [];
         const params = {
-            id: 'message' + id, // Assume this could be a rootId?
+            id: 'message' + uuids[1], // Assume this could be a rootId?
             body: {
                 type: 'notification-add',
-                id
+                id: uuids[1]
             },
 
             // Causes an exception?
@@ -221,6 +225,7 @@ class ServiceApp {
         // const message = new Message(params);
 
         messages.push(params);
+        // console.log('Messages:', messages);
 
         await this.notificationRequests.send(messages);
     }

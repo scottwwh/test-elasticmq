@@ -21,12 +21,12 @@ user-card {
     position: relative;
 }
 
-user-card.active {
+user-card.sending {
     background: gold;
     border-color: orange;
 }
 
-user-card.active.notified {
+user-card.sending.completed {
     transition: all 0.5s;
     background-color: #ddd;
     border-color: #aaa;
@@ -49,7 +49,7 @@ user-card:before {
 }
 
 /* These are not hidden by Clear Notifications button! */
-user-card.supah:before {
+user-card.client:before {
     content: attr(notifications);
     background-color: maroon;
     background-image: none;
@@ -70,6 +70,6 @@ user-card.updated:before {
     transform: rotateY(359deg);
 }
 
-user-card.active.supah:before {
+user-card.client.receiving:before {
     background-color: red;
 }

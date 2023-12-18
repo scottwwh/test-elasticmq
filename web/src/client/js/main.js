@@ -18,7 +18,7 @@ async function init(e) {
     document.querySelector('button.modify-notifications').addEventListener('click', e => {
         const els = [...document.querySelectorAll('user-card')];
         els.forEach(el => {
-            el.classList.toggle('supah');
+            el.classList.toggle(CLASS_HOT);
         });
     });
 
@@ -35,6 +35,7 @@ async function initWebSocket() {
     ws.onmessage = (webSocketMessage) => {
         const messageBody = JSON.parse(webSocketMessage.data);
         if (messageBody.type === 'notification') {
+            console.log('Notification for:', messageBody.id)
             updateBadgeNotification(messageBody.id);
         } else {
             console.log('Unknown message type', messageBody);
@@ -92,7 +93,7 @@ function addUser(e) {
             }
         })
         .then(data => {
-            console.log('User created?', data);
+            // console.log('User created?', data);
             addUserCard(data.id, name);
         });
 }
@@ -113,6 +114,7 @@ async function initUsers() {
 
     const users = [];
     data.forEach(id => {
+        // console.log('ID:', id);
         users.push(addUserCard(id));
     });
 
@@ -120,11 +122,6 @@ async function initUsers() {
 }
 
 function addUserCard(id, name) {
-    if (!id) {
-        console.log(id, name, 'ID is undefined, something went wrong on the server..')
-        return;
-    }
-
     document.querySelector('button.send-notification-random').disabled = false;
 
     const el = document.createElement('user-card');
@@ -146,9 +143,29 @@ function addUserCard(id, name) {
         })
         .then(data => {
             
+            // Initialize from server as base number for subsequent updates
+            el.notifications = data.notifications;            
+
             // Update card with name - this seems a bit backwards for new users?
             el.setAttribute('name', data.name);
         });
+}
+
+function generateNotificationData(users, total) {
+    const notificationData = [];
+    for (var i = 0; i < total; i++) {
+        // Sender
+        const from = Math.floor(Math.random() * users.length);
+
+        // Recipient
+        let to = Math.floor(Math.random() * users.length);
+        while (to === from) {
+            to = Math.floor(Math.random() * users.length);
+        }
+
+        notificationData.push({ from, to });
+    }
+    return notificationData;
 }
 
 function sendNotificationsRandom(e) {
@@ -159,11 +176,14 @@ function sendNotificationsRandom(e) {
 
     // Pre-clean since events/intervals on web component are still not perfect
     users.forEach(el => {
-        el.classList.remove('active', 'notified');
+        el.classList.remove('sending', 'receiving', 'completed');
     });
 
-    const intervalTotal = Math.floor(Math.random() * 80) + 20;
-    // console.log(`Send ${intervalTotal} notifications`);
+    const intervalTotal = Math.floor(Math.random() * 15) + 5;
+    console.log(`Send ${intervalTotal} notifications`);
+
+    const notificationData = generateNotificationData(users, intervalTotal);
+    console.log(notificationData);
 
     let intervalCount = 0;
     let interval = setInterval(e => {
@@ -172,13 +192,15 @@ function sendNotificationsRandom(e) {
 
             button.disabled = false;
         } else {
-            const i = Math.floor(Math.random() * users.length);
-            sendNotification(i);
+            sendNotification(notificationData[intervalCount]);
 
             intervalCount++;
         }
     }, 100);
+    // }, 500);
 }
+
+const CLASS_HOT = 'client';
 
 /**
  * Send notification (rather than taking an action that triggers a notification) via API
@@ -188,19 +210,23 @@ function sendNotificationsRandom(e) {
  * 
  * @param {*} index
  */
-function sendNotification(index) {
-    const el = users[index];
+function sendNotification(contacts) {
+    const elSender = users[contacts.from];
+    const uuidSender = elSender.getAttribute('user-id');
 
-    // TODO: Figure out if this can glitch based on JSON not being loaded yet?
+    // Enables CSS for client-side notification count
+    const elRecipient = users[contacts.to];
+    elRecipient.classList.add('receiving');
+    elRecipient.classList.add(CLASS_HOT);
+
+    // TODO: Decouple sender/receiver transitions
     //
-    // This should be triggered once the image and JSON are fully loaded, I believe?
-    el.classList.add('supah');
-
     // Trigger CSS transition
-    el.dispatchEvent(new Event('notification-request'));
+    elSender.dispatchEvent(new Event('notification-request'));
 
-    const uuid = el.getAttribute('user-id');
-    fetch(`/api/notifications/${uuid}`)
+    // TODO: Adapt to send UUIDs for sender/receiver
+    const uuidRecipient = elRecipient.getAttribute('user-id');
+    fetch(`/api/notifications/${uuidSender}:${uuidRecipient}`)
         .catch(err => console.error(err))
         .then(response => {
             if (!response.ok) {
@@ -245,11 +271,9 @@ function updateNotifications(e) {
             console.log('Notifications updated?', data, els);
         });
 
+    // TODO: What is this hack for?
     els.forEach(el => {
-        // TODO: Fix this, cuz it does not work!
-        // el.notifications = notifications;
-
-        // Hack
+        el.classList.remove('client');
         el.style = ``;
     })
 }
@@ -271,7 +295,7 @@ function updateBadges() {
 
     // TODO: What should response be?
     Promise.all(updates).then(response => {
-        // console.log('Completed all updates:', response);
+        console.log('Completed all updates:', response);
     });
 }
 
@@ -283,33 +307,16 @@ function updateBadges() {
  */
 function updateBadgeNotification(uuid) {
     const el = document.querySelector(`[user-id="${uuid}"]`);
-    if (el.classList.contains('supah')) {
-        // console.log('yoyoyo');
+    if (el.classList.contains(CLASS_HOT)) {
         el.notifications++;
 
     } else {
-        // console.log('hi?');
-        
-        // Use of initialization only!
-        // This is actually quite stupid given that the CSS works perfectly for socket updates
+        // Use for initialization, until new notifications are received via socket
         el.style = `--url: url('../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
-
-        // // This should be triggered once the image and JSON are fully loaded, I believe?
-        // el.classList.add('supah');
     }
-
-    // TODO: Implement high/low count to determine whether a user has already hit 10
-    // and thus should display an animation
-    //
-    // const notifications = data.notifications;
-    // if (notifications > 0 && notifications != el.notifications) {
-    //     el.notifications = data.notifications;
-
-        // el.notifications++;
-        // el.notifications = 6;
-
-        el.classList.toggle('updated');
-    // }
+    
+    // TBD: How does this toggle work?
+    el.classList.toggle('updated');
 }
 
 window.addEventListener('DOMContentLoaded', init);

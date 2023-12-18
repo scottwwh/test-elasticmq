@@ -15,7 +15,7 @@ export class UserCard extends LitElement {
             const max = 9;
             const num = parseInt(value);
             if (num === 0) {
-              return '';
+              return 0;
             } else if (num > max) {
               return '..';
             } else {
@@ -29,12 +29,16 @@ export class UserCard extends LitElement {
 
   constructor() {
     super();
-    this.name = 'Anonymous &nbsp;';
+    this.name = 'Anonymous';
     this.notifications = '';
     this.notificationTime = null;
     this.notificationInterval = null;
 
     this.addEventListener('notification-request', this.handleNotificationRequest);
+
+    // TODO: Unsure if this is necessary..
+    // this.addEventListener('notification-response', this.handleNotificationResponse);
+
     this.addEventListener('transitionend', this.resetStyles);
   }
 
@@ -46,26 +50,39 @@ export class UserCard extends LitElement {
     clearInterval(this.notificationInterval);
     this.notificationInterval = null;
 
-    this.classList.remove('active', 'notified');
+    this.classList.remove('sending', 'receiving', 'completed');
   }
 
   checkFade() {
-    if (new Date().getTime() - this.notificationTime >= 50) {
-        this.classList.add('notified');
+    if (new Date().getTime() - this.notificationTime >= NOTIFICATION_TIME_MS) {
+        this.classList.add('completed');
       } else {
-        this.classList.remove('notified');
+        this.classList.remove('completed');
     }
   }
 
   handleNotificationRequest(e) {
     this.notificationTime = new Date().getTime();
-    this.classList.add('active');
-    this.classList.remove('notified');
+    this.classList.add('sending');
+    this.classList.remove('completed');
 
     if (this.notificationInterval === null) {
-      this.notificationInterval = setInterval(this.checkFade.bind(this), 50)
+      this.notificationInterval = setInterval(this.checkFade.bind(this), NOTIFICATION_TIME_MS)
     }
   }
+
+  // Unsure if this is necessary
+  /*
+  handleNotificationResponse(e) {
+    this.notificationTime = new Date().getTime();
+    this.classList.add('receiving');
+    this.classList.remove('completed');
+
+    if (this.notificationInterval === null) {
+      this.notificationInterval = setInterval(this.checkFade.bind(this), NOTIFICATION_TIME_MS)
+    }
+  }
+  */
 
   handleClear(e) {
     this.notifications = 0;
@@ -80,5 +97,7 @@ export class UserCard extends LitElement {
       <p><button @click="${this.handleClear}">Clear</button></p>`;
   }
 }
+
+const NOTIFICATION_TIME_MS = 50;
 
 customElements.define('user-card', UserCard);
