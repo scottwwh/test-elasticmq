@@ -40,7 +40,7 @@ function update(data) {
       .attr("cx", function(d){ return(x(d.name))})
       .attr("cy", height-30)
       .attr("r", 8)
-      .style("fill", "#69b3a2")
+      .style("fill", "#ccc")
 
   // And give them a label
   var labels = svg
@@ -80,24 +80,25 @@ function update(data) {
         .join(' ');
     })
     .style("fill", "none")
-    .attr("stroke", "black")
+    .attr("stroke", "#ccc")
+    .attr("stroke-width", function(d) { return d.weight })
 
     // Add the highlighting functionality
     nodes
       .on('mouseover', function (d) {
         // Highlight the nodes: every node is green except of him
-        nodes.style('fill', "#B8B8B8")
-        d3.select(this).style('fill', '#69b3b2')
+        nodes.style('fill', "#ccc")
+        d3.select(this).style('fill', 'orange')
         // Highlight the connections
         links
-          .style('stroke', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? '#69b3b2' : '#b8b8b8';})
-          .style('stroke-width', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? 4 : 1;})
+          .style('stroke', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? 'orange' : '#ccc';})
+        //   .style('stroke-width', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? 4 : 1;})
       })
       .on('mouseout', function (d) {
-        nodes.style('fill', "#69b3a2")
+        nodes.style('fill', "#ccc")
         links
-          .style('stroke', 'black')
-          .style('stroke-width', '1')
+          .style('stroke', '#ccc')
+        //   .style('stroke-width', '1')
       })
 }
 

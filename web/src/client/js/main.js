@@ -217,9 +217,10 @@ function sendNotificationsRandom(e) {
 
             button.disabled = false;
 
-            // TODO: Add a delay (of 50ms?) so transitions have all ended before the update
-            // and add a transition to the SVG itself
-            visualizationUpdate();            
+            // TODO: Add a transition to the SVG itself
+            setTimeout(() => {
+                visualizationUpdate();
+            }, 100);
         } else {
             sendNotification(notificationData[intervalCount]);
 
@@ -228,16 +229,61 @@ function sendNotificationsRandom(e) {
     }, 100);
 }
 
-const CLASS_HOT = 'client';
+/**
+ * Visualization utiis
+ * @param {*} obj
+ */
+const notificationsHistory = [];
 
 function visualizationAddLink(obj) {
-    data.links.push(obj);
+    notificationsHistory.push(obj);
 }
 
 // TODO: Add debounced call to pre-generate graph for the next visit
 function visualizationUpdate() {
+
+    // Tried and true
+    // data.links = notificationsHistory;
+    console.log(`${notificationsHistory.length} notifications`)
+
+
+    const notificationsMap = {};
+    notificationsHistory.forEach(datum => {
+        const id = `${datum.source}:${datum.target}`;
+        const idReverse = `${datum.target}:${datum.source}`;
+
+        // Treat messages between the same people going in
+        // either direction as equivalent for now..
+        let match = null;
+        if (notificationsMap[id]) {
+            match = id;
+        } else if (notificationsMap[idReverse]) {
+            match = idReverse;
+        }
+
+        // No communication found, create new object
+        if (match === null) {
+            notificationsMap[id] = {
+                id: datum.id,
+                weight: 1,
+                source: datum.source,
+                target: datum.target,
+            };
+        } else {
+            notificationsMap[match].weight += 0.5;
+        }
+    })
+
+    // Convert object into array for D3
+    data.links = Object.keys(notificationsMap).map(id => {
+        return notificationsMap[id];
+    })
+    
     update(data);
 }
+
+
+const CLASS_HOT = 'client';
 
 /**
  * Send notification (rather than taking an action that triggers a notification) via API
