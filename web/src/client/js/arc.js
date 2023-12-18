@@ -1,20 +1,12 @@
 
-
-// Stringified version of file
-const data = {"nodes":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"},{"id":4,"name":"D"},{"id":5,"name":"E"},{"id":6,"name":"F"},{"id":7,"name":"G"},{"id":8,"name":"H"},{"id":9,"name":"I"},{"id":10,"name":"J"}],"links":[{"source":1,"target":2},{"source":1,"target":5},{"source":1,"target":6},{"source":2,"target":3},{"source":2,"target":7},{"source":3,"target":4},{"source":8,"target":3},{"source":4,"target":5},{"source":4,"target":9},{"source":5,"target":10}]};
-
-
-// Test updates
-setTimeout((e) => {
-    // console.log('hello?');
-    data.links.push({"source":10,"target":1});
-    update(data);
-}, 1000);
-
-
-// set the dimensions and margins of the graph
+// TODO: Detect and adapt to available block size
 // const w = client.screenWidth - ( margin.left + margin.right );
 
+/**
+ * Reference: https://d3-graph-gallery.com/graph/arc_highlight.html
+ */
+
+// set the dimensions and margins of the graph
 var margin = {top: 20, right: 30, bottom: 20, left: 30},
   width = 800 - margin.left - margin.right,
   height = 450 - margin.top - margin.bottom;
@@ -58,17 +50,18 @@ function update(data) {
     .append("text")
       .attr("x", function(d){ return(x(d.name))})
       .attr("y", height-5)
-      .text(function(d){ return(d.name)})
+      // .text(function(d){ return(d.name)})
+      .text(function(d) {
+        const firstName = d.name.split(' ')[0]
+        return firstName
+      })
       .style("text-anchor", "middle")
 
-  // Add links between nodes. Here is the tricky part.
-  // In my input data, links are provided between nodes -id-, NOT between node names.
-  // So I have to do a link between this id and the name
+  // Add hash map between IDs and their nodes
   var idToNode = {};
   data.nodes.forEach(function (n) {
     idToNode[n.id] = n;
   });
-  // Cool, now if I do idToNode["2"].name I've got the name of the node with id 2
 
   // Add the links
   var links = svg
@@ -77,8 +70,8 @@ function update(data) {
     .enter()
     .append('path')
     .attr('d', function (d) {
-      start = x(idToNode[d.source].name)    // X position of start node on the X axis
-      end = x(idToNode[d.target].name)      // X position of end node
+      let start = x(idToNode[d.source].name)    // X position of start node on the X axis
+      let end = x(idToNode[d.target].name)      // X position of end node
       return ['M', start, height-30,    // the arc starts at the coordinate x=start, y=height-30 (where the starting node is)
         'A',                            // This means we're gonna build an elliptical arc
         (start - end)/2, ',',    // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
@@ -108,4 +101,6 @@ function update(data) {
       })
 }
 
-update(data);
+export {
+    update
+};

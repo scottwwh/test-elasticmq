@@ -1,14 +1,37 @@
 
 import { UserCard } from './../elements/UserCard.js';
 import names from './names.js';
+import { update } from './arc.js';
 
 let users = [];
 
+// Stringified version of D3 file
+const data = {
+    // "nodes":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"},{"id":4,"name":"D"},{"id":5,"name":"E"},{"id":6,"name":"F"},{"id":7,"name":"G"},{"id":8,"name":"H"},{"id":9,"name":"I"},{"id":10,"name":"J"}],
+    nodes: [],
+
+    // TODO: Add weight property to represent higher frequency
+    // "links":[{"source":1,"target":2},{"source":1,"target":5},{"source":1,"target":6},{"source":2,"target":3},{"source":2,"target":7},{"source":3,"target":4},{"source":8,"target":3},{"source":4,"target":5},{"source":4,"target":9},{"source":5,"target":10}]
+    links: [],
+};
+
 async function init(e) {
 
+    data.nodes = [];
+    data.links = [];
+
     const users = initUsers();
-    users.then(data => {
-        // console.log('Loaded all users');
+    users.then(res => {
+
+        // Update data for D3
+        data.nodes = res.map((user, i) => {
+            return {
+                id: user.id,
+                name: user.name
+            }
+        });
+        update(data);
+
         updateBadges();
     });
 
@@ -148,6 +171,8 @@ function addUserCard(id, name) {
 
             // Update card with name - this seems a bit backwards for new users?
             el.setAttribute('name', data.name);
+
+            return data;
         });
 }
 
@@ -191,16 +216,28 @@ function sendNotificationsRandom(e) {
             clearInterval(interval);
 
             button.disabled = false;
+
+            // TODO: Add a delay (of 50ms?) so transitions have all ended before the update
+            // and add a transition to the SVG itself
+            visualizationUpdate();            
         } else {
             sendNotification(notificationData[intervalCount]);
 
             intervalCount++;
         }
     }, 100);
-    // }, 500);
 }
 
 const CLASS_HOT = 'client';
+
+function visualizationAddLink(obj) {
+    data.links.push(obj);
+}
+
+// TODO: Add debounced call to pre-generate graph for the next visit
+function visualizationUpdate() {
+    update(data);
+}
 
 /**
  * Send notification (rather than taking an action that triggers a notification) via API
@@ -219,13 +256,17 @@ function sendNotification(contacts) {
     elRecipient.classList.add('receiving');
     elRecipient.classList.add(CLASS_HOT);
 
+    // TODO: Adapt to send UUIDs for sender/receiver
+    const uuidRecipient = elRecipient.getAttribute('user-id');
+
     // TODO: Decouple sender/receiver transitions
     //
     // Trigger CSS transition
     elSender.dispatchEvent(new Event('notification-request'));
 
-    // TODO: Adapt to send UUIDs for sender/receiver
-    const uuidRecipient = elRecipient.getAttribute('user-id');
+    // Update data for D3
+    visualizationAddLink({ source: uuidSender, target: uuidRecipient });
+    
     fetch(`/api/notifications/${uuidSender}:${uuidRecipient}`)
         .catch(err => console.error(err))
         .then(response => {
