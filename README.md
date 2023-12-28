@@ -15,7 +15,11 @@ Gotchas:
 
 ## TODO
 
+- Restore pure CSS notification badges following first load to get rid of flickering
+- Add Data class to manage IO until there's a database
+- Add NotificationMessage class to reduce boilerplate
 - Add "intermediate" visual state when notifications requested < notifications received
+- **DONE** - Create static image for notification badges on first load
 - **DONE** - Add UUIDv4 identifiers for users
 - **DONE** - Add WebSockets for notifications (https://ably.com/blog/web-app-websockets-nodejs)
 
@@ -29,10 +33,10 @@ Next, copy `.env.reference` to `.env` and configure values for AWS.
 Finally, build/launch like so:
 ```
 # Build web services/UI
-docker-compose build web
+docker compose build web
 
 # Launch containers
-docker-compose up
+docker compose up
 ```
 
 Once launched, the following URLs will be available:

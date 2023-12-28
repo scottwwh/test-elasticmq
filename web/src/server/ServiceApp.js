@@ -2,7 +2,7 @@
 // import { SQS } from 'aws-sdk';
 
 // Not really necessary at the moment, but good to keep around
-const { SQS } = require('aws-sdk');
+// const { SQS } = require('aws-sdk');
 
 // const config = require('./src/config');
 const Message = require('./Message');
@@ -59,20 +59,20 @@ wss.on('connection', (ws) => {
     // wsBroadcastMessage(foo);
 
     // TODO: Clear the interval if connection is closed (currently causing a cascade of overlapping messages in the beginning)
-    let i = 0;
-    let interval = setInterval(() => {
-        i++;
-        if (i <= 10) {
-            const data = {
-                status: `Still running`,
-                number: i
-            }
-            wsBroadcastMessage(data);
-        } else {
-            clearInterval(interval);
-            i = 0;
-        }
-    }, 500);
+    // let i = 0;
+    // let interval = setInterval(() => {
+    //     i++;
+    //     if (i <= 10) {
+    //         const data = {
+    //             status: `Still running`,
+    //             number: i
+    //         }
+    //         wsBroadcastMessage(data);
+    //     } else {
+    //         clearInterval(interval);
+    //         i = 0;
+    //     }
+    // }, 500);
 });
 
 function wsBroadcastMessage(data) {
@@ -92,7 +92,9 @@ console.log("wss up");
 class ServiceApp {
     constructor(config) {
         this.config = config;
+        this.badgesRoot = path.join(__dirname, '..', this.config.DATA_BADGES);
         this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
+        this.dataRoot = path.join(__dirname, '..', this.config.DATA);
     }
 
     async init() {
@@ -113,12 +115,14 @@ class ServiceApp {
             queueUrl: this.config.QUEUE_FULL_URL + this.config.QUEUE_NOTIFICATIONS_REQUESTS,
             region: this.config.ZONE
         });
+        // console.log('requests:', this.notificationRequests);
 
         this.notificationResponses = new BaseConsumer(
             this.config,
             this.config.QUEUE_NOTIFICATIONS_RESPONSES,
             msg => { this.notificationHandler(msg); }
         );
+
         this.notificationResponses.start();
     }
 
@@ -150,37 +154,111 @@ class ServiceApp {
             notifications: 0
         };
 
-        const user = payload.id;
-        const path = this.cdnRoot + `${user}.json`;
+        const path = this.dataRoot + `${payload.id}.json`;
 
-        // TODO: Check to verify whether user has already been created,
-        // and make sure that front-end is not trying to create the user again!
         try {
+            // Create simple counter
             fs.writeFileSync(path, JSON.stringify(payload), { encoding: 'utf-8'});
-            return user;
+
+            // Create badge as failsafe for MQ being offline
+            fs.copyFileSync(this.badgesRoot + '0.svg', this.cdnRoot + `${payload.id}.svg`);
+
+            // Send notification
+            const messages = [];
+            const params = {
+                id: 'message' + payload.id, // Assume this could be a rootId?
+                body: {
+                    type: 'notification-create',
+                    id: payload.id
+                }
+            };
+            params.body = JSON.stringify(params.body);
+    
+            messages.push(params);
+
+            try {
+                await this.notificationRequests.send(messages);
+            } catch(err) {
+                console.error('SQS error');
+            }
+
+            return payload.id;
         } catch(err) {
             console.error(err)
         }
     }
 
-    async sendMessage(id) {
+    async getUser(id) {
+        const file = this.dataRoot + `${id}.json`;
+        const data = fs.readFileSync(file, { encoding: 'utf-8' });
+        return JSON.parse(data);
+    }
+
+    async getAllUsers() {
+        // Strip .json extension to leave just the GUID
+        const users = fs.readdirSync(this.dataRoot)
+          .filter(file => {return file.indexOf('.json') > -1})
+          .map(file => file.split('.')[0]);
+
+        return users;
+    }
+
+    async sendNotification(ids) {
+        // 0 = sender, 1 = recipient
+        const uuids = ids.split(':');
+        // console.log(uuids);
+
         const messages = [];
         const params = {
-            id: 'message' + id, // Assume this could be a rootId?
-            body: `${id}`,
+            id: 'message' + uuids[1], // Assume this could be a rootId?
+            body: {
+                type: 'notification-add',
+                id: uuids[1]
+            },
 
             // Causes an exception?
             // messageAttributes: {
             //   attr1: { DataType: 'Boolean', BooleanValue: valid }
             // }
         };
+        params.body = JSON.stringify(params.body);
 
         // Throws an exception when pushed into the queue
         // const message = new Message(params);
 
         messages.push(params);
+        // console.log('Messages:', messages);
 
         await this.notificationRequests.send(messages);
+    }
+
+    async updateNotifications(id) {
+        try {
+            // This seems very wasteful, because the same thing is happening in ProcessorApp?
+            const path = this.dataRoot + `${id}.json`;
+            const userFile = fs.readFileSync(path, { encoding: 'utf-8' });
+            const payload = JSON.parse(userFile);
+            payload.notifications = 0;
+            fs.writeFileSync(path, JSON.stringify(payload), { encoding: 'utf-8'});
+
+            const messages = [];
+            const params = {
+                id: 'message' + id, // Assume this could be a rootId?
+                body: {
+                    type: 'notification-clear',
+                    id
+                }
+            };
+            params.body = JSON.stringify(params.body);
+    
+            messages.push(params);
+            await this.notificationRequests.send(messages);
+
+            return payload;
+      
+        } catch (err) {
+          throw err;
+        }
     }
 }
 

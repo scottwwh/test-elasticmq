@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "reset": "rm ./src/client/cdn/*.txt",
+    "reset": "rm -f ./src/client/cdn/*.svg -f && rm -f ./src/client/data/*.json",
     "start": "npm run start:producer & npm run start:consumer",
     "start:producer": "node src/server/index.js",
     "start:consumer": "node src/server/processor.js",

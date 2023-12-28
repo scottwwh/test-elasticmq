@@ -5,6 +5,8 @@ const config = {
     QUEUE_USERS: 'processor-user-requests',
     QUEUE_NOTIFICATIONS_REQUESTS: 'processor-notification-requests',
     QUEUE_NOTIFICATIONS_RESPONSES: 'processor-notification-responses',
+    DATA: './client/data/',
+    DATA_BADGES: './client/badges/',
     WEB_PUBLIC: './client/',
     WEB_CDN: './client/cdn/'
 }

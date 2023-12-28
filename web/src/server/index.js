@@ -18,10 +18,17 @@ app.use(bodyParser());
 app.use(serve(webRoot));
 
 router.get('/', list)
-  .post('/api/user/', addUser)
-  .get('/api/user/', getAllUsers)
-  .get('/api/user/:id', getUser)
-  .get('/api/notification/:id', sendNotification)
+
+  // Users
+  .post('/api/users/', addUser)
+  .get('/api/users/', getAllUsers)
+  .get('/api/users/:id', getUser)
+
+  // Notifications
+  //
+  // TODO: Change this to post?
+  .get('/api/notifications/:ids', sendNotification)
+  .patch('/api/notifications/:id', updateNotifications)
 
 // Display home page
 async function list(ctx) {
@@ -31,31 +38,22 @@ async function list(ctx) {
 };
 
 // Get data for specific user
-// TODO: Move to ServiceApp
 async function getUser(ctx) {
   const id = ctx.params.id;
   try {
-    ctx.response.body = "ACK";
-    const userDataFile = path.join(__dirname, '..', config.WEB_CDN, '/', `${id}.json`);
-    const userData = fs.readFileSync(userDataFile, { encoding: 'utf-8' });
-    console.log(userData);
-    ctx.response.body = JSON.parse(userData);
-
+    const data = await service.getUser(id);
+    ctx.response.body = data;
   } catch (err) {
     console.log(err);
     ctx.response.body = "NOK";
   }
 };
 
-// TODO: Move to ServiceApp
+// Get list of all users
 async function getAllUsers(ctx) {
-  const webCdn = path.join(__dirname, '..', config.WEB_CDN);
-
-  // Strip .json extension to leave just the GUID
-  const dir = fs.readdirSync(webCdn).map(file => file.split('.')[0]);
-
   try {
-    ctx.response.body = dir;
+    const users = await service.getAllUsers();
+    ctx.response.body = users;
   } catch (err) {
     console.log(err);
     ctx.response.body = "NOK";
@@ -74,17 +72,42 @@ async function addUser(ctx) {
     };
   } catch (err) {
     console.log(err);
+    ctx.response.body = {
+      status: "NOK"
+    };
+  }
+};
+
+// TODO: Adapt this to expect a pair of UUIDs
+async function sendNotification(ctx) {
+  try {
+    if (ctx.params && ctx.params.ids) {
+      await service.sendNotification(ctx.params.ids);
+    }
+
+    ctx.response.body = "ACK";
+  } catch (err) {
+    console.log(err);
     ctx.response.body = "NOK";
   }
 };
 
-async function sendNotification(ctx) {
+// Set notifications to 0
+async function updateNotifications(ctx) {
   try {
+    let data = [];
     if (ctx.params && ctx.params.id) {
-      await service.sendMessage(ctx.params.id);
+      const ids = ctx.params.id.split(',');
+      for (var i = 0; i < ids.length; i++) {
+        const res = await service.updateNotifications(ids[i]);
+        data.push(res);
+      }
     }
 
-    ctx.response.body = "ACK";
+    ctx.response.body = {
+      status: "ACK",
+      notifications: data
+    };
   } catch (err) {
     console.log(err);
     ctx.response.body = "NOK";
@@ -99,6 +122,6 @@ app.listen(3000);
   try {
     await service.init();
   } catch (err) {
-    console.log('Could not initialize serviceApp:', err);
+    console.log('Could not initialize ServiceApp:', err);
   }
 })();
