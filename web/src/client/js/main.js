@@ -475,8 +475,8 @@ function updateBadgeNotification(uuid) {
         el.style = `--url: url('../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
     }
     
-    // TBD: How does this toggle work?
-    // el.classList.toggle('updated');
+    // Flip the badge
+    el.classList.toggle('updated');
 }
 
 window.addEventListener('DOMContentLoaded', init);

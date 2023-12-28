@@ -96,8 +96,8 @@ async function sendNotification(ctx) {
 async function clearNotifications(ctx) {
   try {
     let data = [];
-    if (ctx.params && ctx.params.id) {
-      const ids = ctx.params.id.split(',');
+    if (ctx.params && ctx.params.ids) {
+      const ids = ctx.params.ids.split(',');
 
       // Clear notifications for all identified IDs
       for (var i = 0; i < ids.length; i++) {
