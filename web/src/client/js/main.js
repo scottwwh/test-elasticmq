@@ -15,6 +15,8 @@ const data = {
     links: [],
 };
 
+const userMap = {};
+
 async function init(e) {
 
     data.nodes = [];
@@ -25,6 +27,7 @@ async function init(e) {
 
         // Update data for D3
         data.nodes = res.map((user, i) => {
+            userMap[user.id] = i;
             return {
                 id: user.id,
                 name: user.name,
@@ -36,8 +39,22 @@ async function init(e) {
         updateBadges();
     });
 
+    const elCards = document.querySelector('.user-cards');
+    elCards.addEventListener('transitionend', e => {
+        // Avoid bubbling events from user-card elements
+        if (!e.target.classList.contains('user-cards'))
+            return;
+
+        if (!elCards.classList.contains('hide')) {
+            elCards.classList.add('hide');
+        }
+    });
     document.querySelector('button.toggle-user-cards').addEventListener('click', e => {
-        document.querySelector('.user-cards').classList.toggle('hide');
+        if (elCards.classList.contains('hide')) {
+            elCards.classList.remove('hide', 'fade-out');
+        } else {
+            elCards.classList.add('fade-out');
+        }
     });
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
@@ -129,6 +146,9 @@ function addUser(e) {
                 name,
                 weight: 1,
             });
+
+            // Update map
+            userMap[res.id] = data.nodes.length - 1;
 
             update(data);
         });
@@ -229,11 +249,6 @@ function sendNotificationsRandom(e) {
             clearInterval(interval);
 
             button.disabled = false;
-
-            // TODO: Add a transition to the SVG itself
-            // setTimeout(() => {
-            //     visualizationUpdate();
-            // }, 100);
         } else {
             sendNotification(notificationData[intervalCount]);
 
@@ -246,7 +261,7 @@ function sendNotificationsRandom(e) {
  * Visualization utiis
  * @param {*} obj
  */
-const notificationsHistory = [];
+let notificationsHistory = [];
 
 function visualizationAddLink(obj) {
     notificationsHistory.push(obj);
@@ -314,6 +329,7 @@ function sendNotification(contacts) {
     elSender.classList.add(CLASS_HOT);
 
     const uuidSender = elSender.getAttribute('user-id');
+    data.nodes[userMap[uuidSender]].weight += 0.025;
 
     // Enables CSS for client-side notification count
     const elRecipient = users[contacts.to];
@@ -322,6 +338,7 @@ function sendNotification(contacts) {
 
     // TODO: Adapt to send UUIDs for sender/receiver
     const uuidRecipient = elRecipient.getAttribute('user-id');
+    data.nodes[userMap[uuidRecipient]].weight += 0.025;
 
     // TODO: Decouple sender/receiver transitions
     //
@@ -379,6 +396,14 @@ function updateNotifications(e) {
         .then(data => {
             console.log('Notifications updated?', data, els);
         });
+
+    // This should be part of promise?
+    data.links = [];
+    data.nodes.forEach(node => {
+        node.weight = 1;
+    });
+    notificationsHistory = [];
+    update(data);
 
     // TODO: What is this hack for?
     els.forEach(el => {

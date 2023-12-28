@@ -6,10 +6,17 @@
  * Reference: https://d3-graph-gallery.com/graph/arc_highlight.html
  */
 
-// set the dimensions and margins of the graph
-var margin = {top: 20, right: 30, bottom: 20, left: 30},
-  width = 1000 - margin.left - margin.right,
-  height = 550 - margin.top - margin.bottom;
+// Relies on CSS sizing
+const rect = document.querySelector("div#my_dataviz").getBoundingClientRect();
+console.log(rect);
+
+// Set the dimensions and margins of the graph
+var margin = {top: 40, right: 80, bottom: 40, left: 80},
+  width = rect.width - margin.left - margin.right,
+  height = rect.height - margin.top - margin.bottom;
+
+const ratio = width / height;
+// console.log(ratio);
 
 // append the svg object to the body of the page
 var svg = d3.select("#my_dataviz")
@@ -43,13 +50,13 @@ function update(data) {
     .enter().append("circle")
       .attr("cx", width)
       .attr("cy", height - 30)
-      .attr("r", 8)
+      .attr("r", 5)
       .style("fill", "#ccc")
     // Applies to both links and links.enter()
     .merge(nodes)
       .transition()
       .attr("cx", function(d){ return(x(d.name))})
-
+      .attr("r", function(d){ return d.weight * 5})
   
   // TODO: Combine with nodes
   //
@@ -71,7 +78,7 @@ function update(data) {
 
         const elSecond = document.createElementNS(d3.namespaces.svg, 'tspan');
         elSecond.setAttribute("x", 0);
-        elSecond.setAttribute("y", 12);
+        elSecond.setAttribute("y", 12.5);
         elSecond.textContent = names[1];
 
         elText.appendChild(elFirst);
@@ -104,23 +111,33 @@ function update(data) {
       .attr("stroke", "#f00")
       .attr("stroke-width", 0)
 
+    // TODO: Refer to official docs: https://d3js.org/d3-selection/joining#selection_join
+    //
     // Applies to both links and links.enter()
     .merge(links)
+      // TODO: Make this work
+      // .attr("stroke", "#f00")
       .transition()
       .attr("stroke", "#ccc")
       .attr("stroke-width", function(d) { return d.weight })
       .attr('d', function (d) {
-        let start = x(idToNode[d.source].name)      // X position of start node on the X axis
-        let end = x(idToNode[d.target].name)        // X position of end node
-        return ['M', start, height-30,              // the arc starts at the coordinate x=start, y=height-30 (where the starting node is)
-          'A',                                      // This means we're gonna build an elliptical arc
-          (start - end)/2, ',',                     // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
-          (start - end)/2, 0, 0, ',',
-          start < end ? 1 : 0, end, ',', height-30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
+
+        // TODO: Cap inflexion point of arc to no taller than SVG height
+        const start = x(idToNode[d.source].name)      // X position of start node on the X axis
+        const end = x(idToNode[d.target].name)        // X position of end node
+
+        return ['M', start, height - margin.top,      // The arc starts at the coordinate x=start, y=height-30 (where the starting node is)
+          'A',                                        // This means we're gonna build an elliptical arc
+          (start - end) / 2, ',',                 // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
+          (start - end) / 2, 0, 0, ',',
+          start < end ? 1 : 0, end, ',', height - margin.top] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
           .join(' ');
       })      
 
-  links.exit().remove();
+  links.exit()
+    .transition()
+    .attr("stroke-width", 0)
+    .remove();
 
 
   // DEBUG

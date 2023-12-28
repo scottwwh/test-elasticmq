@@ -3,21 +3,39 @@
     --main-bg-color: #ddd;
 }
 
-.hide {
-    display: none;
-    /* opacity: 0; */
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background: rgba(200, 200, 200, 0.75);
+    border-bottom: 1px solid #ddd;
+    padding: 1rem;
+}
+
+header h1 {
+    margin: 0;
+    padding: 0 0 1rem 0;
 }
 
 article {
     margin-top: 1rem;
-    border-top: 1px solid #eee;
 }
 
 .user-cards {
     margin: 0.5rem auto;
     max-width: 985px;
-    /* border: 1px solid red; */
-    /* transition: opacity 0.5s; */
+    opacity: 1;
+    transition: opacity 0.5s;
+}
+
+.fade-out {
+    opacity: 0;
+}
+
+.hide {
+    display: none;
 }
 
 user-card {
@@ -86,7 +104,9 @@ user-card.client.receiving:before {
 #my_dataviz {
     border: 2px dotted orange;
     position: absolute;
+    top: 0;
     bottom: 0;
+    width: 100%;
     left: 50%;
     z-index: -1;
     transform: translateX(-50%);

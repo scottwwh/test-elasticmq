@@ -8,34 +8,21 @@
         <script type="module" src="js/main.js"></script>
     </head>
     <body>
-        <h1>Message visualization within a social network</h1>
-
-        <div class="loading" style="font-size: 400%; color: #ccc; display: none;">
-            <!--
-                Ref:
-                    https://html.spec.whatwg.org/multipage/named-characters.html#named-character-references
-                    https://medium.com/@eokinch/unicode-characters-in-html-css-a55c77fd3570
-
-                \U+021BB
-            -->
-            &circlearrowright;
-        </div>
-
-        <nav style="float: left">
-            <!-- Doesn't work atm -->
-            <!-- <a href="/api/notification">Notification</a> -->
-
-            <button class="add-user">Add user</button>
-        </nav>
-
-        <nav style="text-align: right;">
-            <button class="toggle-user-cards">Toggle card display</button>
-            |
-            <button class="send-notification-random" disabled>Send random notifications</button>
-            <button class="clear-notifications">Clear all notifications</button>
-            |
-            <button class="modify-notifications">Modify notification style</button>
-        </nav>
+        <header>
+            <h1>Message visualization within a social network</h1>
+            
+            <nav style="float: left">
+                <button class="add-user">Add user</button>
+                <button class="toggle-user-cards">Toggle card display</button>
+            </nav>
+    
+            <nav style="text-align: right;">
+                <button class="send-notification-random" disabled>Send random notifications</button>
+                <button class="clear-notifications">Clear all notifications</button>
+                |
+                <button class="modify-notifications">Modify notification style</button>
+            </nav>
+        </header>
         
         <article>
             <section class="user-cards"></section>
