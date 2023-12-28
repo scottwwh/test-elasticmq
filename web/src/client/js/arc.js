@@ -71,14 +71,14 @@ function update(data) {
     .data(data.nodes)
     .enter().append("circle")
       .attr("cx", width)
-      .attr("r", 5)
-      .style("fill", "#ccc")
+      .attr("r", 10)
+      .style("fill", "#ddd")
     // Applies to both links and links.enter()
     .merge(nodes)
       .transition()
       .attr("cy", height - 30)
       .attr("cx", function(d){ return(x(d.name))})
-      .attr("r", function(d){ return d.weight * 5})
+      .attr("r", function(d){ return d.weight * 5 + 5})
   
   // TODO: Combine with nodes
   //
@@ -125,7 +125,7 @@ function update(data) {
   // Add the links
   var links = svg
     .selectAll('path')
-    .data(data.links);
+    .data(data.links, function(d) { return d.id }); // Necessary for clean removal
 
   links
     .enter().append('path')
@@ -140,7 +140,7 @@ function update(data) {
       // TODO: Make this work
       // .attr("stroke", "#f00")
       .transition()
-      .attr("stroke", "#ccc")
+      .attr("stroke", "#ddd")
       .attr("stroke-width", function(d) { return d.weight })
       .attr('d', function (d) {
 
@@ -179,7 +179,7 @@ function update(data) {
       .on('mouseover', function (d) {
 
         // Highlight the nodes
-        nodes.attr('fill', "#ccc");
+        nodes.attr('fill', "#ddd");
 
         d3.select(this).style('fill', 'orange')
 
@@ -189,13 +189,13 @@ function update(data) {
             if (link_d.source === d.id || link_d.target === d.id) {
               return 'orange'
             } else {
-              return '#ccc';
+              return '#ddd';
             }
           })
       })
       .on('mouseout', function (d) {
-        nodes.style('fill', "#ccc")
-        links.style('stroke', '#ccc')
+        nodes.style('fill', "#ddd")
+        links.style('stroke', '#ddd')
       })
 }
 

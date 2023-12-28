@@ -28,7 +28,7 @@ router.get('/', list)
   //
   // TODO: Change this to post?
   .get('/api/notifications/:ids', sendNotification)
-  .patch('/api/notifications/:id', updateNotifications)
+  .delete('/api/notifications/:ids', clearNotifications)
 
 // Display home page
 async function list(ctx) {
@@ -93,13 +93,15 @@ async function sendNotification(ctx) {
 };
 
 // Set notifications to 0
-async function updateNotifications(ctx) {
+async function clearNotifications(ctx) {
   try {
     let data = [];
     if (ctx.params && ctx.params.id) {
       const ids = ctx.params.id.split(',');
+
+      // Clear notifications for all identified IDs
       for (var i = 0; i < ids.length; i++) {
-        const res = await service.updateNotifications(ids[i]);
+        const res = await service.clearNotifications(ids[i]);
         data.push(res);
       }
     }

@@ -86,7 +86,7 @@ export class UserCard extends LitElement {
 
   handleClear(e) {
     this.notifications = 0;
-    this.dispatchEvent(new Event('notification-update'));
+    this.dispatchEvent(new Event('notification-clear'));
   }
 
   render() {

@@ -232,7 +232,7 @@ class ServiceApp {
         await this.notificationRequests.send(messages);
     }
 
-    async updateNotifications(id) {
+    async clearNotifications(id) {
         try {
             // This seems very wasteful, because the same thing is happening in ProcessorApp?
             const path = this.dataRoot + `${id}.json`;

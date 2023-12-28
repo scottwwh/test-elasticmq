@@ -7,11 +7,10 @@ let users = [];
 
 // Stringified version of D3 file
 const data = {
-    // "nodes":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"},{"id":4,"name":"D"},{"id":5,"name":"E"},{"id":6,"name":"F"},{"id":7,"name":"G"},{"id":8,"name":"H"},{"id":9,"name":"I"},{"id":10,"name":"J"}],
+    // { id, name, weight }
     nodes: [],
 
-    // TODO: Add weight property to represent higher frequency
-    // "links":[{"source":1,"target":2},{"source":1,"target":5},{"source":1,"target":6},{"source":2,"target":3},{"source":2,"target":7},{"source":3,"target":4},{"source":8,"target":3},{"source":4,"target":5},{"source":4,"target":9},{"source":5,"target":10}]
+    // { source, target, weight }
     links: [],
 };
 
@@ -58,7 +57,7 @@ async function init(e) {
     });
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
-    document.querySelector('button.clear-notifications').addEventListener('click', updateNotifications);
+    document.querySelector('button.clear-notifications').addEventListener('click', clearNotifications);
     document.querySelector('button.modify-notifications').addEventListener('click', e => {
         const els = [...document.querySelectorAll('user-card')];
         els.forEach(el => {
@@ -182,7 +181,7 @@ function addUserCard(id, name) {
 
     const el = document.createElement('user-card');
     el.setAttribute('user-id', id);
-    el.addEventListener('notification-update', updateNotifications);
+    el.addEventListener('notification-clear', clearNotifications);
 
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
@@ -226,6 +225,7 @@ function generateNotificationData(users, total) {
     return notificationData;
 }
 
+// TODO: Rename to sendMessageRandom because that is what we're doing
 function sendNotificationsRandom(e) {
     const button = e.currentTarget;
     button.disabled = true;
@@ -238,10 +238,10 @@ function sendNotificationsRandom(e) {
     });
 
     const intervalTotal = Math.floor(Math.random() * 40) + 10;
-    console.log(`Send ${intervalTotal} notifications`);
+    // console.log(`Send ${intervalTotal} notifications`);
 
     const notificationData = generateNotificationData(users, intervalTotal);
-    console.log(notificationData);
+    // console.log(notificationData);
 
     let intervalCount = 0;
     let interval = setInterval(e => {
@@ -321,6 +321,7 @@ const CLASS_HOT = 'client';
  * 
  * @param {*} index
  */
+// TODO: Rename to sendMessage
 function sendNotification(contacts) {
     const elSender = users[contacts.from];
 
@@ -349,6 +350,7 @@ function sendNotification(contacts) {
     visualizationAddLink({ source: uuidSender, target: uuidRecipient });
     visualizationUpdate();
     
+    // TODO: POST to /api/users/:id/notifications with recipient as payload
     fetch(`/api/notifications/${uuidSender}:${uuidRecipient}`)
         .catch(err => console.error(err))
         .then(response => {
@@ -364,8 +366,8 @@ function sendNotification(contacts) {
 }
 
 // TODO: Distinguish between this and _clearNotifications_ which needs to exist
-function updateNotifications(e) {
-    console.log('Update notifications');
+function clearNotifications(e) {
+    console.log('Clear notifications');
 
     // Glob all requests if request comes from outside of a user card
     const USER_CARD = 'user-card';
@@ -374,7 +376,7 @@ function updateNotifications(e) {
     const notifications = 0;
 
     fetch(`/api/notifications/${ids}`, {
-            method: 'PATCH',
+            method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
@@ -397,12 +399,32 @@ function updateNotifications(e) {
             console.log('Notifications updated?', data, els);
         });
 
-    // This should be part of promise?
-    data.links = [];
-    data.nodes.forEach(node => {
-        node.weight = 1;
-    });
-    notificationsHistory = [];
+    // Clear notifications where ID is the target
+    if (ids.length === 1) {
+        const id = ids[0];
+
+        notificationsHistory = notificationsHistory.filter(notification => {
+            return (notification.target !== id);
+        });
+
+        // TODO: Confirm whether the following are derive data
+        // and so redundant?
+        data.links = data.links.filter(link => {
+            return (link.target !== id);
+        });
+
+        data.nodes[userMap[id]].weight = 1;
+    } else {
+        data.links = [];
+
+        data.nodes.forEach(node => {
+            node.weight = 1;
+        });
+
+        notificationsHistory = [];
+    }
+
+    // Update viz
     update(data);
 
     // TODO: What is this hack for?
