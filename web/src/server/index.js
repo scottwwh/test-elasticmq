@@ -110,7 +110,9 @@ async function updateNotifications(ctx) {
     };
   } catch (err) {
     console.log(err);
-    ctx.response.body = "NOK";
+    ctx.response.body = {
+      status: "NOK"
+    };
   }
 };
 

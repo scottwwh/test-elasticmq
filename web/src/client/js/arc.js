@@ -6,20 +6,41 @@
  * Reference: https://d3-graph-gallery.com/graph/arc_highlight.html
  */
 
-// Relies on CSS sizing
-const rect = document.querySelector("div#my_dataviz").getBoundingClientRect();
-console.log(rect);
+window.addEventListener('resize', e => {
+  init();
+  update(dataCache);
+});
 
-// Set the dimensions and margins of the graph
-var margin = {top: 40, right: 80, bottom: 40, left: 80},
-  width = rect.width - margin.left - margin.right,
+
+const margin = {top: 40, right: 80, bottom: 40, left: 80};
+let svg = null,
+  dataCache = null,
+  width = 0,
+  height = 0;
+
+
+function init() {
+  // Relies on CSS sizing
+  const rect = document.querySelector("#my_dataviz").getBoundingClientRect();
+
+  // Set the dimensions and margins of the graph
+  width = rect.width - margin.left - margin.right;
   height = rect.height - margin.top - margin.bottom;
 
-const ratio = width / height;
-// console.log(ratio);
+  // TODO: Revisit how I can do this with D3
+  const elSvg = document.querySelector("#my_dataviz svg");
+  if (elSvg) {
+    console.log('Resize SVG');
+    elSvg.setAttribute("width", width + margin.left + margin.right)
+    elSvg.setAttribute("height", height + margin.top + margin.bottom);
+  }
+}
+
+init();
+
 
 // append the svg object to the body of the page
-var svg = d3.select("#my_dataviz")
+svg = d3.select("#my_dataviz")
   .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -31,6 +52,7 @@ var svg = d3.select("#my_dataviz")
 function update(data) {
 
   // console.log(data);
+  dataCache = data;
 
   // List of node names
   var allNodes = data.nodes.map(function(d){return d.name})
@@ -49,12 +71,12 @@ function update(data) {
     .data(data.nodes)
     .enter().append("circle")
       .attr("cx", width)
-      .attr("cy", height - 30)
       .attr("r", 5)
       .style("fill", "#ccc")
     // Applies to both links and links.enter()
     .merge(nodes)
       .transition()
+      .attr("cy", height - 30)
       .attr("cx", function(d){ return(x(d.name))})
       .attr("r", function(d){ return d.weight * 5})
   
