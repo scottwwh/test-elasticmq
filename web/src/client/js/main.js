@@ -27,7 +27,8 @@ async function init(e) {
         data.nodes = res.map((user, i) => {
             return {
                 id: user.id,
-                name: user.name
+                name: user.name,
+                weight: 1,
             }
         });
         update(data);
@@ -35,6 +36,9 @@ async function init(e) {
         updateBadges();
     });
 
+    document.querySelector('button.toggle-user-cards').addEventListener('click', e => {
+        document.querySelector('.user-cards').classList.toggle('hide');
+    });
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
     document.querySelector('button.clear-notifications').addEventListener('click', updateNotifications);
@@ -58,10 +62,10 @@ async function initWebSocket() {
     ws.onmessage = (webSocketMessage) => {
         const messageBody = JSON.parse(webSocketMessage.data);
         if (messageBody.type === 'notification') {
-            console.log('Notification for:', messageBody.id)
+            // console.log('Notification for:', messageBody.id)
             updateBadgeNotification(messageBody.id);
         } else {
-            console.log('Unknown message type', messageBody);
+            // console.log('Unknown message type', messageBody);
         }
     };
 
@@ -93,6 +97,7 @@ async function connectToServer() {
  * @param {*} e 
  */
 function addUser(e) {
+    // TODO: Move this to server?
     const name = names.getRandom();
 
     fetch(`/api/users/`, {
@@ -115,9 +120,17 @@ function addUser(e) {
                 return response.json();
             }
         })
-        .then(data => {
+        .then(res => {
             // console.log('User created?', data);
-            addUserCard(data.id, name);
+            addUserCard(res.id, name);
+
+            data.nodes.push({
+                id: res.id,
+                name,
+                weight: 1,
+            });
+
+            update(data);
         });
 }
 
@@ -204,7 +217,7 @@ function sendNotificationsRandom(e) {
         el.classList.remove('sending', 'receiving', 'completed');
     });
 
-    const intervalTotal = Math.floor(Math.random() * 15) + 5;
+    const intervalTotal = Math.floor(Math.random() * 40) + 10;
     console.log(`Send ${intervalTotal} notifications`);
 
     const notificationData = generateNotificationData(users, intervalTotal);
@@ -218,9 +231,9 @@ function sendNotificationsRandom(e) {
             button.disabled = false;
 
             // TODO: Add a transition to the SVG itself
-            setTimeout(() => {
-                visualizationUpdate();
-            }, 100);
+            // setTimeout(() => {
+            //     visualizationUpdate();
+            // }, 100);
         } else {
             sendNotification(notificationData[intervalCount]);
 
@@ -239,13 +252,13 @@ function visualizationAddLink(obj) {
     notificationsHistory.push(obj);
 }
 
+// TODO: Keep count of last message so client needn't recalculate everything
 // TODO: Add debounced call to pre-generate graph for the next visit
 function visualizationUpdate() {
 
     // Tried and true
     // data.links = notificationsHistory;
     console.log(`${notificationsHistory.length} notifications`)
-
 
     const notificationsMap = {};
     notificationsHistory.forEach(datum => {
@@ -264,7 +277,7 @@ function visualizationUpdate() {
         // No communication found, create new object
         if (match === null) {
             notificationsMap[id] = {
-                id: datum.id,
+                id,
                 weight: 1,
                 source: datum.source,
                 target: datum.target,
@@ -295,6 +308,11 @@ const CLASS_HOT = 'client';
  */
 function sendNotification(contacts) {
     const elSender = users[contacts.from];
+
+    // For some reason, this is required to prevent style="--url" from being set
+    // even though sender's notifications are not being updated?
+    elSender.classList.add(CLASS_HOT);
+
     const uuidSender = elSender.getAttribute('user-id');
 
     // Enables CSS for client-side notification count
@@ -312,6 +330,7 @@ function sendNotification(contacts) {
 
     // Update data for D3
     visualizationAddLink({ source: uuidSender, target: uuidRecipient });
+    visualizationUpdate();
     
     fetch(`/api/notifications/${uuidSender}:${uuidRecipient}`)
         .catch(err => console.error(err))
@@ -327,7 +346,10 @@ function sendNotification(contacts) {
         });
 }
 
+// TODO: Distinguish between this and _clearNotifications_ which needs to exist
 function updateNotifications(e) {
+    console.log('Update notifications');
+
     // Glob all requests if request comes from outside of a user card
     const USER_CARD = 'user-card';
     const els = (e.currentTarget.nodeName.toLowerCase() === USER_CARD) ? [e.currentTarget] : [...document.querySelectorAll('user-card')] ;
@@ -382,7 +404,7 @@ function updateBadges() {
 
     // TODO: What should response be?
     Promise.all(updates).then(response => {
-        console.log('Completed all updates:', response);
+        // console.log('Completed all updates:', response);
     });
 }
 
@@ -394,7 +416,11 @@ function updateBadges() {
  */
 function updateBadgeNotification(uuid) {
     const el = document.querySelector(`[user-id="${uuid}"]`);
+    // console.log(el);
+
     if (el.classList.contains(CLASS_HOT)) {
+        console.log('Client-side update')
+        el.style = '';
         el.notifications++;
 
     } else {
@@ -403,7 +429,7 @@ function updateBadgeNotification(uuid) {
     }
     
     // TBD: How does this toggle work?
-    el.classList.toggle('updated');
+    // el.classList.toggle('updated');
 }
 
 window.addEventListener('DOMContentLoaded', init);

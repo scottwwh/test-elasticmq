@@ -92,6 +92,7 @@ console.log("wss up");
 class ServiceApp {
     constructor(config) {
         this.config = config;
+        this.badgesRoot = path.join(__dirname, '..', this.config.DATA_BADGES);
         this.cdnRoot = path.join(__dirname, '..', this.config.WEB_CDN);
         this.dataRoot = path.join(__dirname, '..', this.config.DATA);
     }
@@ -155,11 +156,12 @@ class ServiceApp {
 
         const path = this.dataRoot + `${payload.id}.json`;
 
-        // TODO: Check to verify whether user has already been created,
-        // and make sure that front-end is not trying to create the user again!
         try {
+            // Create simple counter
             fs.writeFileSync(path, JSON.stringify(payload), { encoding: 'utf-8'});
 
+            // Create badge as failsafe for MQ being offline
+            fs.copyFileSync(this.badgesRoot + '0.svg', this.cdnRoot + `${payload.id}.svg`);
 
             // Send notification
             const messages = [];
