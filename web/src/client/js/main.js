@@ -33,9 +33,26 @@ async function init(e) {
                 weight: 1,
             }
         });
-        update(data);
 
         updateBadges();
+
+        // Load initial visualization data
+        fetch(`/api/notifications/`)
+            .catch(err => console.error(err))
+            .then(response => {
+                if (!response.ok) {
+                    throw Error("URL not found");
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+
+                notificationsHistory = data.notifications;
+
+                // TODO: Figure out why this leads to mouseover not working until an update?
+                visualizationUpdate();
+            });
     });
 
     const elCards = document.querySelector('.user-cards');
@@ -78,18 +95,12 @@ async function initWebSocket() {
     ws.onmessage = (webSocketMessage) => {
         const messageBody = JSON.parse(webSocketMessage.data);
         if (messageBody.type === 'notification') {
-            // console.log('Notification for:', messageBody.id)
+            // console.log('Notification:', messageBody);
             updateBadgeNotification(messageBody.id);
         } else {
-            // console.log('Unknown message type', messageBody);
+            console.log('Unknown message type', messageBody);
         }
     };
-
-    // TODO: Determine if there are any cases where I want to send messages rather than call an API?
-    // document.body.onmousemove = (evt) => {
-    //     const messageBody = { x: evt.clientX, y: evt.clientY };
-    //     ws.send(JSON.stringify(messageBody));
-    // };
 }
 
 async function connectToServer() {
@@ -271,12 +282,11 @@ function visualizationAddLink(obj) {
 // TODO: Add debounced call to pre-generate graph for the next visit
 function visualizationUpdate() {
 
-    // Tried and true
-    // data.links = notificationsHistory;
     console.log(`${notificationsHistory.length} notifications`)
 
     const notificationsMap = {};
     notificationsHistory.forEach(datum => {
+        // console.log(datum);
         const id = `${datum.source}:${datum.target}`;
         const idReverse = `${datum.target}:${datum.source}`;
 
@@ -305,7 +315,7 @@ function visualizationUpdate() {
     // Convert object into array for D3
     data.links = Object.keys(notificationsMap).map(id => {
         return notificationsMap[id];
-    })
+    });
     
     update(data);
 }
@@ -325,10 +335,6 @@ const CLASS_HOT = 'client';
 function sendNotification(contacts) {
     const elSender = users[contacts.from];
 
-    // For some reason, this is required to prevent style="--url" from being set
-    // even though sender's notifications are not being updated?
-    elSender.classList.add(CLASS_HOT);
-
     const uuidSender = elSender.getAttribute('user-id');
     data.nodes[userMap[uuidSender]].weight += 0.025;
 
@@ -346,12 +352,25 @@ function sendNotification(contacts) {
     // Trigger CSS transition
     elSender.dispatchEvent(new Event('notification-request'));
 
+    const payload = {
+        id: null,
+        source: uuidSender,
+        target: uuidRecipient,
+        content: `Foo bar ${Math.random() * 1000}`
+    };
+
     // Update data for D3
     visualizationAddLink({ source: uuidSender, target: uuidRecipient });
     visualizationUpdate();
     
-    // TODO: POST to /api/users/:id/notifications with recipient as payload
-    fetch(`/api/notifications/${uuidSender}:${uuidRecipient}`)
+    fetch(`/api/users/${uuidSender}/messages`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
         .catch(err => console.error(err))
         .then(response => {
             if (!response.ok) {
@@ -427,8 +446,9 @@ function clearNotifications(e) {
     // Update viz
     update(data);
 
-    // TODO: What is this hack for?
+    // Reset element
     els.forEach(el => {
+        el.notifications = 0;
         el.classList.remove('client');
         el.style = ``;
     })

@@ -23,11 +23,12 @@ router.get('/', list)
   .post('/api/users/', addUser)
   .get('/api/users/', getAllUsers)
   .get('/api/users/:id', getUser)
+  .post('/api/users/:id/messages', sendMessage)
 
   // Notifications
   //
   // TODO: Change this to post?
-  .get('/api/notifications/:ids', sendNotification)
+  .get('/api/notifications/', getNotifications)
   .delete('/api/notifications/:ids', clearNotifications)
 
 // Display home page
@@ -79,10 +80,15 @@ async function addUser(ctx) {
 };
 
 // TODO: Adapt this to expect a pair of UUIDs
-async function sendNotification(ctx) {
+async function sendMessage(ctx) {
   try {
-    if (ctx.params && ctx.params.ids) {
-      await service.sendNotification(ctx.params.ids);
+    const body = ctx.request.body;
+    if (ctx.params && ctx.params.id && ctx.request.body) {
+
+      // TODO: Push to MQ to pre-generate JSON
+      notificationsHistory.push(body);
+
+      await service.sendMessage(ctx.params.id, ctx.request.body);
     }
 
     ctx.response.body = "ACK";
@@ -91,6 +97,21 @@ async function sendNotification(ctx) {
     ctx.response.body = "NOK";
   }
 };
+
+
+/**
+ * Notifications
+ */
+
+let notificationsHistory = [];
+
+// Load initial notification data for D3 (until it is cached)
+async function getNotifications(ctx) {
+  ctx.response.body = {
+    status: "ACK",
+    notifications: notificationsHistory
+  };
+}
 
 // Set notifications to 0
 async function clearNotifications(ctx) {
@@ -105,6 +126,9 @@ async function clearNotifications(ctx) {
         data.push(res);
       }
     }
+
+    // TODO: Fix when clearing single users' notifications
+    notificationsHistory = [];
 
     ctx.response.body = {
       status: "ACK",

@@ -203,17 +203,18 @@ class ServiceApp {
         return users;
     }
 
-    async sendNotification(ids) {
-        // 0 = sender, 1 = recipient
-        const uuids = ids.split(':');
-        // console.log(uuids);
+    async sendMessage(id, body) {
+
+        if (id !== body.source) {
+            throw new Error("Invalid payload");
+        }
 
         const messages = [];
         const params = {
-            id: 'message' + uuids[1], // Assume this could be a rootId?
+            id: 'message' + body.target, // Assume this could be a rootId?
             body: {
                 type: 'notification-add',
-                id: uuids[1]
+                id: body.target
             },
 
             // Causes an exception?
