@@ -49,6 +49,10 @@ svg = d3.select("#my_dataviz")
           "translate(" + margin.left + "," + margin.top + ")");
 
 
+
+let previousData = d3.local();
+
+
 function update(data) {
 
   // console.log(data);
@@ -72,7 +76,6 @@ function update(data) {
     return x(d.name)
   }
 
-  
   // Add the circle for the nodes
   var nodes = svg
     .selectAll("circle")
@@ -140,6 +143,8 @@ function update(data) {
     console.log(`${id} exists? ${exists}`);
   }
 
+
+  /*
   // Add the links
   var links = svg
     .selectAll('path')
@@ -186,17 +191,93 @@ function update(data) {
     .transition()
     .attr("stroke-width", 0)
     .remove();
-
-
-  // DEBUG
-  //
-  /*
-  // TODO: Get all children appended to SVG
-  // const foo = svg.selectAll('mylinks');
-  const g = svg._groups[0][0];
-  console.log('Nodes:', g.children.length);
   */
 
+
+  // Add the links
+  var links = svg
+    .selectAll('path')
+    .data(data.links, d => d.id); // Necessary for clean removal
+
+  links
+    .join(
+      enter => enter
+        .append('path')
+        .attr("stroke", "#f00")
+        .each(function(d) {
+          console.log('save on enter');
+          previousData.set(this, d.weight); // https://d3js.org/d3-selection/locals
+        })
+        .attr('d', function (d) {
+
+          let start = 0;
+          let end = 0;
+          try {  
+            // TODO: Cap inflexion point of arc to no taller than SVG height
+            start = x(idToNode[d.source].name)      // X position of start node on the X axis
+            end = x(idToNode[d.target].name)        // X position of end node
+          } catch (err) {
+            console.log("Found a missing node!");
+            // idExists(d.source);
+            // idExists(d.target);
+          }
+
+          return ['M', start, height - margin.top,      // The arc starts at the coordinate x=start, y=height-30 (where the starting node is)
+            'A',                                        // This means we're gonna build an elliptical arc
+            (start - end) / 2, ',',                 // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
+            (start - end) / 2, 0, 0, ',',
+            start < end ? 1 : 0, end, ',', height - margin.top] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
+            .join(' ');
+        }),
+        
+      update => update
+        .attr("stroke", function(d) {
+          // Check old data for element for update based on weight
+          if (previousData.get(this) < d.weight) {
+            return "#f00";
+          } else {
+            return "#ddd";
+          }
+        })
+        .each(function(d) {
+          console.log('save on enter');
+          previousData.set(this, d.weight);
+        })
+        .attr('d', function (d) {
+
+          let start = 0;
+          let end = 0;
+          try {  
+            // TODO: Cap inflexion point of arc to no taller than SVG height
+            start = x(idToNode[d.source].name)      // X position of start node on the X axis
+            end = x(idToNode[d.target].name)        // X position of end node
+          } catch (err) {
+            console.log("Found a missing node!");
+            // idExists(d.source);
+            // idExists(d.target);
+          }
+
+          return ['M', start, height - margin.top,      // The arc starts at the coordinate x=start, y=height-30 (where the starting node is)
+            'A',                                        // This means we're gonna build an elliptical arc
+            (start - end) / 2, ',',                 // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
+            (start - end) / 2, 0, 0, ',',
+            start < end ? 1 : 0, end, ',', height - margin.top] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
+            .join(' ');
+        }),
+
+      exit => exit
+        .transition()
+        .attr("stroke-width", 0)
+        .remove()
+
+
+    )
+    .attr("fill", "none")
+    .attr("stroke-width", function(d) { return d.weight })
+    .transition()
+    .duration(50)
+    .attr("stroke", "#ddd")
+    ;
 
 
 

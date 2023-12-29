@@ -13,6 +13,21 @@ const data = {
     links: [],
 };
 
+
+// TODO: Integrate this
+function sortByName(a, b) {
+    if (a.name < b.name) {
+        return -1;
+    }
+
+    if (a.name > b.name) {
+        return 1;
+    }
+
+    return 0;
+}
+  
+
 const userMap = {};
 
 function generateUserMap() {
@@ -218,7 +233,6 @@ async function initUsers() {
 
     const users = [];
     data.forEach(id => {
-        // console.log('ID:', id);
         users.push(addUserCard(id));
     });
 
@@ -323,7 +337,7 @@ function visualizationAddLink(obj) {
 // TODO: Add debounced call to pre-generate graph for the next visit
 function visualizationUpdate() {
 
-    console.log(`${notificationsHistory.length} notifications`)
+    // console.log(`${notificationsHistory.length} notifications`)
 
     const notificationsMap = {};
     notificationsHistory.forEach(datum => {
