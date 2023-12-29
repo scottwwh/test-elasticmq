@@ -90,6 +90,8 @@ function update(data) {
       // .attr("cx", function(d, i){ return xNew(d, i)})
       .attr("cx", function(d){ return x(d.name)})
       .attr("r", function(d){ return d.weight * 5 + 5})
+
+  nodes.exit().remove();
   
   // TODO: Combine with nodes
   //
@@ -132,6 +134,11 @@ function update(data) {
     idToNode[n.id] = n;
   });
 
+  // Debug
+  function idExists(id) {
+    const exists = Boolean(idToNode[id]);
+    console.log(`${id} exists? ${exists}`);
+  }
 
   // Add the links
   var links = svg
@@ -155,9 +162,17 @@ function update(data) {
       .attr("stroke-width", function(d) { return d.weight })
       .attr('d', function (d) {
 
-        // TODO: Cap inflexion point of arc to no taller than SVG height
-        const start = x(idToNode[d.source].name)      // X position of start node on the X axis
-        const end = x(idToNode[d.target].name)        // X position of end node
+        let start = 0;
+        let end = 0;
+        try {  
+          // TODO: Cap inflexion point of arc to no taller than SVG height
+          start = x(idToNode[d.source].name)      // X position of start node on the X axis
+          end = x(idToNode[d.target].name)        // X position of end node
+        } catch (err) {
+          console.log("Found a missing node!");
+          // idExists(d.source);
+          // idExists(d.target);
+        }
 
         return ['M', start, height - margin.top,      // The arc starts at the coordinate x=start, y=height-30 (where the starting node is)
           'A',                                        // This means we're gonna build an elliptical arc

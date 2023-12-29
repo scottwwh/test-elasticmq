@@ -16,6 +16,12 @@ const data = {
 
 const userMap = {};
 
+function generateUserMap() {
+    data.nodes.forEach((user, i) => {
+        userMap[user.id] = i;
+    });
+}
+
 async function init(e) {
 
     data.nodes = [];
@@ -26,13 +32,13 @@ async function init(e) {
 
         // Update data for D3
         data.nodes = res.map((user, i) => {
-            userMap[user.id] = i;
             return {
                 id: user.id,
                 name: user.name,
                 weight: 1,
             }
         });
+        generateUserMap();
 
         updateBadges();
 
@@ -161,6 +167,49 @@ function addUser(e) {
             userMap[res.id] = data.nodes.length - 1;
 
             update(data);
+
+            console.log(data);
+        });
+}
+
+function removeUser(e) {
+    const id = e.target.getAttribute('user-id');
+
+    fetch(`/api/users/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+        })
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.json();
+            }
+        })
+        .then(res => {
+            console.log('Response:', res);
+            if (res.status === 'ACK') {
+                document.querySelector('.user-cards').removeChild(e.target);
+
+                // Regenerate original list
+                users = [...document.querySelectorAll('user-card')];
+
+                try {
+                    // TODO: Verify that deleting this node also deletes any associated links?
+                    Notifications.clearNotificationsAndUpdateData(id, true);
+            
+                    // Update viz
+                    update(data);
+
+                    console.log(data);
+                } catch (err) {
+                    console.log('Error deleting user:', err);            
+                }            
+            }
         });
 }
 
@@ -193,6 +242,7 @@ function addUserCard(id, name) {
     const el = document.createElement('user-card');
     el.setAttribute('user-id', id);
     el.addEventListener('notification-clear', clearNotifications);
+    el.addEventListener('user-remove', removeUser);
 
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
@@ -392,7 +442,10 @@ function clearNotifications(e) {
     const USER_CARD = 'user-card';
     const els = (e.currentTarget.nodeName.toLowerCase() === USER_CARD) ? [e.currentTarget] : [...document.querySelectorAll('user-card')] ;
     const ids = els.map(el => el.getAttribute('user-id'));
-    const notifications = 0;
+    if (ids.length === 0) {
+        console.log('No users, exiting..');
+        return;
+    }
 
     fetch(`/api/notifications/${ids}`, {
             method: 'DELETE',
@@ -400,11 +453,6 @@ function clearNotifications(e) {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(
-                {
-                    notifications
-                }
-            )
         })
         .catch(err => console.error(err))
         .then(response => {
@@ -417,34 +465,13 @@ function clearNotifications(e) {
         .then(data => {
             console.log('Notifications cleared?', data, els);
         });
+    
 
-    // Clear notifications where ID is the target
-    if (ids.length === 1) {
-        const id = ids[0];
-
-        notificationsHistory = notificationsHistory.filter(notification => {
-            return (notification.target !== id);
-        });
-
-        // TODO: Confirm whether the following are derive data
-        // and so redundant?
-        data.links = data.links.filter(link => {
-            return (link.target !== id);
-        });
-
-        data.nodes[userMap[id]].weight = 1;
-    } else {
-        data.links = [];
-
-        data.nodes.forEach(node => {
-            node.weight = 1;
-        });
-
-        notificationsHistory = [];
-    }
-
+    Notifications.clearNotificationsAndUpdateData(ids);
+    
     // Update viz
     update(data);
+
 
     // Reset element
     els.forEach(el => {
@@ -453,6 +480,61 @@ function clearNotifications(e) {
         el.style = ``;
     })
 }
+
+
+// TODO: Centralize data and notification objects?
+class Notifications {
+
+    static clearNotificationsAndUpdateData(ids, removeUser = false) {
+
+        ids = Array.isArray(ids) ? ids : [ids] ;
+        console.log('Delete notifications for IDs:', ids, removeUser);
+
+        if (ids.length === 1) {
+            const id = ids[0];
+            
+            if (removeUser) {
+                notificationsHistory = notificationsHistory.filter(notification => {
+                    return (notification.target !== id && notification.source !== id);
+                });
+    
+                data.links = data.links.filter(link => {
+                    return (link.target !== id && link.source !== id);
+                });
+
+                const index = userMap[id];
+                console.log('Remove user from index', index);
+
+                data.nodes.splice(index, 1);
+
+                delete userMap[id];
+                generateUserMap();
+            } else {
+                data.nodes[userMap[id]].weight = 1;
+
+                notificationsHistory = notificationsHistory.filter(notification => {
+                    return (notification.target !== id);
+                });
+
+                // TODO: Confirm whether the following are derived data
+                // and so redundant?
+                data.links = data.links.filter(link => {
+                    return (link.target !== id);
+                });
+            }
+        } else {
+            data.links = [];
+    
+            data.nodes.forEach(node => {
+                node.weight = 1;
+            });
+    
+            notificationsHistory = [];
+        }
+    }
+}
+
+
 
 /**
  * Update notification badges for the first time

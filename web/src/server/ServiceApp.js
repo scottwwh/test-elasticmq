@@ -188,6 +188,19 @@ class ServiceApp {
         }
     }
 
+    async removeUser(id) {
+        const pathData = this.dataRoot + `${id}.json`;
+        const pathBadge = this.cdnRoot + `${id}.svg`;
+
+        try {
+            // TODO: Move to processor
+            fs.unlinkSync(pathData);
+            fs.unlinkSync(pathBadge);
+        } catch(err) {
+            console.error(err)
+        }
+    }
+
     async getUser(id) {
         const file = this.dataRoot + `${id}.json`;
         const data = fs.readFileSync(file, { encoding: 'utf-8' });
