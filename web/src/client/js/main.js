@@ -415,7 +415,7 @@ function clearNotifications(e) {
             }
         })
         .then(data => {
-            console.log('Notifications updated?', data, els);
+            console.log('Notifications cleared?', data, els);
         });
 
     // Clear notifications where ID is the target
@@ -492,7 +492,7 @@ function updateBadgeNotification(uuid) {
 
     } else {
         // Use for initialization, until new notifications are received via socket
-        el.style = `--url: url('../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
+        el.style = `--url: url('../../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
     }
     
     // Flip the badge

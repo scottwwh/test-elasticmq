@@ -119,6 +119,14 @@ async function clearNotifications(ctx) {
     let data = [];
     if (ctx.params && ctx.params.ids) {
       const ids = ctx.params.ids.split(',');
+      // console.log(ids);
+
+      // Current case is that clearing notifications is one or all
+      if (ids.length === 1) {
+        notificationsHistory = notificationsHistory.filter(el => el.target !== ids[0]);
+      } else {
+        notificationsHistory = [];
+      }
 
       // Clear notifications for all identified IDs
       for (var i = 0; i < ids.length; i++) {
@@ -126,9 +134,6 @@ async function clearNotifications(ctx) {
         data.push(res);
       }
     }
-
-    // TODO: Fix when clearing single users' notifications
-    notificationsHistory = [];
 
     ctx.response.body = {
       status: "ACK",

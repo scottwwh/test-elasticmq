@@ -62,6 +62,16 @@ function update(data) {
     .range([0, width])
     .domain(allNodes)
 
+  // Working attempt to polish adding nodes 1 and 2
+  const xNew = function(d, i) {
+    if (data.nodes.length === 2) {
+      console.log(i);          
+      return width / 3 * (i + 1);
+    }
+    
+    return x(d.name)
+  }
+
   
   // Add the circle for the nodes
   var nodes = svg
@@ -77,7 +87,8 @@ function update(data) {
     .merge(nodes)
       .transition()
       .attr("cy", height - 30)
-      .attr("cx", function(d){ return(x(d.name))})
+      // .attr("cx", function(d, i){ return xNew(d, i)})
+      .attr("cx", function(d){ return x(d.name)})
       .attr("r", function(d){ return d.weight * 5 + 5})
   
   // TODO: Combine with nodes
