@@ -98,7 +98,7 @@ function update(data) {
   // ..and give them a label
   var labels = svg
     .selectAll("text")
-    .data(data.nodes)
+    .data(data.nodes, function(d) { return d.id }); // Necessary for clean removal
 
   labels
     .enter().append(function(d) {

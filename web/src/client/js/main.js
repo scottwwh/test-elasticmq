@@ -503,7 +503,7 @@ class Notifications {
                 });
 
                 const index = userMap[id];
-                console.log('Remove user from index', index);
+                console.log(`Remove user ${data.nodes[index].name} from index`, index);
 
                 data.nodes.splice(index, 1);
 
