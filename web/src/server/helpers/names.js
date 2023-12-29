@@ -66,4 +66,4 @@ class Names {
 
 const names = new Names(namesString);
 
-export default names;
+module.exports = names;

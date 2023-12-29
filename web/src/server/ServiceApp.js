@@ -20,6 +20,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+const names = require('./helpers/names');
 
 //-- Web sockets --//
 
@@ -147,11 +148,12 @@ class ServiceApp {
         }
     }
 
-    async addUser(name) {
+    async addUser() {
         const payload = {
             id: crypto.randomUUID(),
-            name,
-            notifications: 0
+            name: names.getRandom(),
+            notifications: 0,
+            weight: 1,
         };
 
         const path = this.dataRoot + `${payload.id}.json`;
@@ -182,7 +184,7 @@ class ServiceApp {
                 console.error('SQS error');
             }
 
-            return payload.id;
+            return payload;
         } catch(err) {
             console.error(err)
         }

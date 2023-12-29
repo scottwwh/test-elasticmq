@@ -49,10 +49,10 @@ async function addUser(ctx) {
   const name = ctx.request.body.name;
 
   try {
-    const uuid = await service.addUser(name);
+    const user = await service.addUser(name);
     ctx.response.body = {
       status: "ACK",
-      id: uuid
+      data: user
     };
   } catch (err) {
     console.log(err);

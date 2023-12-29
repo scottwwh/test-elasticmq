@@ -1,6 +1,5 @@
 
 import { UserCard } from './../elements/UserCard.js';
-import names from './names.js';
 import { update } from './arc.js';
 
 let users = [];
@@ -130,20 +129,12 @@ async function connectToServer() {
  * @param {*} e 
  */
 function addUser(e) {
-    // TODO: Move this to server?
-    const name = names.getRandom();
-
     fetch(`/api/users/`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(
-                {
-                    name
-                }
-            )
         })
         .catch(err => console.error(err))
         .then(response => {
@@ -154,17 +145,15 @@ function addUser(e) {
             }
         })
         .then(res => {
-            // console.log('User created?', data);
-            addUserCard(res.id, name);
+            const user = res.data;
+            // console.log('User created?', user);
 
-            data.nodes.push({
-                id: res.id,
-                name,
-                weight: 1,
-            });
+            addUserCard(user.id);
+
+            data.nodes.push(user);
 
             // Update map
-            userMap[res.id] = data.nodes.length - 1;
+            generateUserMap();
 
             update(data);
 
@@ -236,7 +225,8 @@ async function initUsers() {
     return Promise.all(users);
 }
 
-function addUserCard(id, name) {
+// This is almost entirely useless, because we've already made the request in addUser() ??
+function addUserCard(id) {
     document.querySelector('button.send-notification-random').disabled = false;
 
     const el = document.createElement('user-card');
@@ -247,6 +237,7 @@ function addUserCard(id, name) {
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
 
+    // TODO: Remove this entirely (we're already getting initial payload at init or when adding users
     return fetch(`/api/users/${id}`)
         .catch(err => console.error(err))
         .then(response => {
