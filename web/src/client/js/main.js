@@ -1,17 +1,14 @@
 
 import { UserCard } from './../elements/UserCard.js';
+import { UserCardList } from './../elements/UserCardList.js';
 import { update } from './arc.js';
+import API from './API.js';
+import Cache from './Cache.js';
 
 let users = [];
-
-// Stringified version of D3 file
-const data = {
-    // { id, name, weight }
-    nodes: [],
-
-    // { source, target, weight }
-    links: [],
-};
+let cache = null;
+let userCardList = null;
+const userMap = {};
 
 
 // TODO: Integrate this
@@ -27,25 +24,21 @@ function sortByName(a, b) {
     return 0;
 }
   
-
-const userMap = {};
-
 function generateUserMap() {
-    data.nodes.forEach((user, i) => {
+    cache.data.nodes.forEach((user, i) => {
         userMap[user.id] = i;
     });
 }
 
 async function init(e) {
 
-    data.nodes = [];
-    data.links = [];
+    cache = new Cache();
 
-    const users = initUsers();
-    users.then(res => {
+    const userData = initUsers();
+    userData.then(async res => {
 
         // Update data for D3
-        data.nodes = res.map((user, i) => {
+        cache.data.nodes = res.map((user, i) => {
             return {
                 id: user.id,
                 name: user.name,
@@ -56,26 +49,15 @@ async function init(e) {
 
         updateBadges();
 
-        // Load initial visualization data
-        fetch(`/api/notifications/`)
-            .catch(err => console.error(err))
-            .then(response => {
-                if (!response.ok) {
-                    throw Error("URL not found");
-                } else {
-                    return response.json();
-                }
-            })
-            .then(data => {
-
-                notificationsHistory = data.notifications;
-
-                // TODO: Figure out why this leads to mouseover not working until an update?
-                visualizationUpdate();
-            });
+        const notificationData = await API.getNotifications();
+        notificationsHistory = notificationData.notifications;
+        visualizationUpdate();
     });
-
+    
+    userCardList = document.createElement('user-card-list');
     const elCards = document.querySelector('.user-cards');
+    elCards.appendChild(userCardList);
+
     elCards.addEventListener('transitionend', e => {
         // Avoid bubbling events from user-card elements
         if (!e.target.classList.contains('user-cards'))
@@ -165,14 +147,14 @@ function addUser(e) {
 
             addUserCard(user.id);
 
-            data.nodes.push(user);
+            cache.data.nodes.push(user);
 
             // Update map
             generateUserMap();
 
-            update(data);
+            update(cache.data);
 
-            console.log(data);
+            console.log(cache.data);
         });
 }
 
@@ -207,9 +189,9 @@ function removeUser(e) {
                     Notifications.clearNotificationsAndUpdateData(id, true);
             
                     // Update viz
-                    update(data);
+                    update(cache.data);
 
-                    console.log(data);
+                    console.log(cache.data);
                 } catch (err) {
                     console.log('Error deleting user:', err);            
                 }            
@@ -221,19 +203,17 @@ function removeUser(e) {
  * Retrieve current users to generate cards
  */ 
 async function initUsers() {
-    const data = await fetch(`/api/users/`)
-        .catch(err => console.error(err))
-        .then(response => {
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                return response.json();
-            }
-        });
-
+    const data = await API.getUsers();
     const users = [];
     data.forEach(id => {
+        // Old
         users.push(addUserCard(id));
+
+        // New
+        cache.data.users.push(id);
+
+        // Must be set explicitly to trigger an update, requestUpdate() does nothing
+        userCardList.data = cache.data.users;
     });
 
     return Promise.all(users);
@@ -368,11 +348,11 @@ function visualizationUpdate() {
     })
 
     // Convert object into array for D3
-    data.links = Object.keys(notificationsMap).map(id => {
+    cache.data.links = Object.keys(notificationsMap).map(id => {
         return notificationsMap[id];
     });
     
-    update(data);
+    update(cache.data);
 }
 
 
@@ -391,7 +371,7 @@ function sendNotification(contacts) {
     const elSender = users[contacts.from];
 
     const uuidSender = elSender.getAttribute('user-id');
-    data.nodes[userMap[uuidSender]].weight += 0.025;
+    cache.data.nodes[userMap[uuidSender]].weight += 0.025;
 
     // Enables CSS for client-side notification count
     const elRecipient = users[contacts.to];
@@ -400,7 +380,7 @@ function sendNotification(contacts) {
 
     // TODO: Adapt to send UUIDs for sender/receiver
     const uuidRecipient = elRecipient.getAttribute('user-id');
-    data.nodes[userMap[uuidRecipient]].weight += 0.025;
+    cache.data.nodes[userMap[uuidRecipient]].weight += 0.025;
 
     // TODO: Decouple sender/receiver transitions
     //
@@ -475,7 +455,7 @@ function clearNotifications(e) {
     Notifications.clearNotificationsAndUpdateData(ids);
     
     // Update viz
-    update(data);
+    update(cache.data);
 
 
     // Reset element
@@ -503,19 +483,19 @@ class Notifications {
                     return (notification.target !== id && notification.source !== id);
                 });
     
-                data.links = data.links.filter(link => {
+                cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id && link.source !== id);
                 });
 
                 const index = userMap[id];
-                console.log(`Remove user ${data.nodes[index].name} from index`, index);
+                console.log(`Remove user ${cache.data.nodes[index].name} from index`, index);
 
-                data.nodes.splice(index, 1);
+                cache.data.nodes.splice(index, 1);
 
                 delete userMap[id];
                 generateUserMap();
             } else {
-                data.nodes[userMap[id]].weight = 1;
+                cache.data.nodes[userMap[id]].weight = 1;
 
                 notificationsHistory = notificationsHistory.filter(notification => {
                     return (notification.target !== id);
@@ -523,14 +503,13 @@ class Notifications {
 
                 // TODO: Confirm whether the following are derived data
                 // and so redundant?
-                data.links = data.links.filter(link => {
+                cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id);
                 });
             }
         } else {
-            data.links = [];
-    
-            data.nodes.forEach(node => {
+            cache.data.links = [];
+            cache.data.nodes.forEach(node => {
                 node.weight = 1;
             });
     
