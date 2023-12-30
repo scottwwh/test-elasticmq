@@ -35,10 +35,6 @@ export class UserCard extends LitElement {
     this.notificationInterval = null;
 
     this.addEventListener('notification-request', this.handleNotificationRequest);
-
-    // TODO: Unsure if this is necessary..
-    // this.addEventListener('notification-response', this.handleNotificationResponse);
-
     this.addEventListener('transitionend', this.resetStyles);
   }
 
@@ -71,22 +67,13 @@ export class UserCard extends LitElement {
     }
   }
 
-  // Unsure if this is necessary
-  /*
-  handleNotificationResponse(e) {
-    this.notificationTime = new Date().getTime();
-    this.classList.add('receiving');
-    this.classList.remove('completed');
-
-    if (this.notificationInterval === null) {
-      this.notificationInterval = setInterval(this.checkFade.bind(this), NOTIFICATION_TIME_MS)
-    }
-  }
-  */
-
   handleClear(e) {
     this.notifications = 0;
-    this.dispatchEvent(new Event('notification-update'));
+    this.dispatchEvent(new Event('notification-clear'));
+  }
+
+  handleRemove(e) {
+    this.dispatchEvent(new Event('user-remove'));
   }
 
   render() {
@@ -94,7 +81,10 @@ export class UserCard extends LitElement {
     const firstName = names[0];
     const lastName = names[1] || " ";
     return html`<p><span>${firstName}<br />${lastName}</span></p>
-      <p><button @click="${this.handleClear}">Clear</button></p>`;
+      <p>
+        <button @click="${this.handleClear}">Clear</button>
+        <button style="color: maroon" @click="${this.handleRemove}">Delete</button>
+      </p>`;
   }
 }
 

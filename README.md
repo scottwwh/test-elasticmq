@@ -10,6 +10,11 @@ I'm using [ElasticMQ's default Docker image](https://github.com/softwaremill/ela
 
 ![Sequence flow diagram](./docs/system.png)
 
+Simple rules:
+- Every user is represented by a node
+- Every message generates one notification for the recipient (not the sender)
+- Unread notifications are reflected by links between sender and recipient (users nodes) butare bound to the recipient
+
 Gotchas:
 - AWS' SDK is semi-magical in accessing cached credentials when developing locally, but of course these need to be explicitly passed in when launching via Docker Compose - see [env reference](./env.reference).
 

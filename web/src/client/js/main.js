@@ -1,19 +1,40 @@
 
 import { UserCard } from './../elements/UserCard.js';
-import names from './names.js';
 import { update } from './arc.js';
 
 let users = [];
 
 // Stringified version of D3 file
 const data = {
-    // "nodes":[{"id":1,"name":"A"},{"id":2,"name":"B"},{"id":3,"name":"C"},{"id":4,"name":"D"},{"id":5,"name":"E"},{"id":6,"name":"F"},{"id":7,"name":"G"},{"id":8,"name":"H"},{"id":9,"name":"I"},{"id":10,"name":"J"}],
+    // { id, name, weight }
     nodes: [],
 
-    // TODO: Add weight property to represent higher frequency
-    // "links":[{"source":1,"target":2},{"source":1,"target":5},{"source":1,"target":6},{"source":2,"target":3},{"source":2,"target":7},{"source":3,"target":4},{"source":8,"target":3},{"source":4,"target":5},{"source":4,"target":9},{"source":5,"target":10}]
+    // { source, target, weight }
     links: [],
 };
+
+
+// TODO: Integrate this
+function sortByName(a, b) {
+    if (a.name < b.name) {
+        return -1;
+    }
+
+    if (a.name > b.name) {
+        return 1;
+    }
+
+    return 0;
+}
+  
+
+const userMap = {};
+
+function generateUserMap() {
+    data.nodes.forEach((user, i) => {
+        userMap[user.id] = i;
+    });
+}
 
 async function init(e) {
 
@@ -31,17 +52,49 @@ async function init(e) {
                 weight: 1,
             }
         });
-        update(data);
+        generateUserMap();
 
         updateBadges();
+
+        // Load initial visualization data
+        fetch(`/api/notifications/`)
+            .catch(err => console.error(err))
+            .then(response => {
+                if (!response.ok) {
+                    throw Error("URL not found");
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+
+                notificationsHistory = data.notifications;
+
+                // TODO: Figure out why this leads to mouseover not working until an update?
+                visualizationUpdate();
+            });
     });
 
+    const elCards = document.querySelector('.user-cards');
+    elCards.addEventListener('transitionend', e => {
+        // Avoid bubbling events from user-card elements
+        if (!e.target.classList.contains('user-cards'))
+            return;
+
+        if (!elCards.classList.contains('hide')) {
+            elCards.classList.add('hide');
+        }
+    });
     document.querySelector('button.toggle-user-cards').addEventListener('click', e => {
-        document.querySelector('.user-cards').classList.toggle('hide');
+        if (elCards.classList.contains('hide')) {
+            elCards.classList.remove('hide', 'fade-out');
+        } else {
+            elCards.classList.add('fade-out');
+        }
     });
     document.querySelector('button.add-user').addEventListener('click', addUser);
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
-    document.querySelector('button.clear-notifications').addEventListener('click', updateNotifications);
+    document.querySelector('button.clear-notifications').addEventListener('click', clearNotifications);
     document.querySelector('button.modify-notifications').addEventListener('click', e => {
         const els = [...document.querySelectorAll('user-card')];
         els.forEach(el => {
@@ -62,18 +115,12 @@ async function initWebSocket() {
     ws.onmessage = (webSocketMessage) => {
         const messageBody = JSON.parse(webSocketMessage.data);
         if (messageBody.type === 'notification') {
-            // console.log('Notification for:', messageBody.id)
+            // console.log('Notification:', messageBody);
             updateBadgeNotification(messageBody.id);
         } else {
-            // console.log('Unknown message type', messageBody);
+            console.log('Unknown message type', messageBody);
         }
     };
-
-    // TODO: Determine if there are any cases where I want to send messages rather than call an API?
-    // document.body.onmousemove = (evt) => {
-    //     const messageBody = { x: evt.clientX, y: evt.clientY };
-    //     ws.send(JSON.stringify(messageBody));
-    // };
 }
 
 async function connectToServer() {
@@ -97,20 +144,12 @@ async function connectToServer() {
  * @param {*} e 
  */
 function addUser(e) {
-    // TODO: Move this to server?
-    const name = names.getRandom();
-
     fetch(`/api/users/`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(
-                {
-                    name
-                }
-            )
         })
         .catch(err => console.error(err))
         .then(response => {
@@ -121,16 +160,60 @@ function addUser(e) {
             }
         })
         .then(res => {
-            // console.log('User created?', data);
-            addUserCard(res.id, name);
+            const user = res.data;
+            // console.log('User created?', user);
 
-            data.nodes.push({
-                id: res.id,
-                name,
-                weight: 1,
-            });
+            addUserCard(user.id);
+
+            data.nodes.push(user);
+
+            // Update map
+            generateUserMap();
 
             update(data);
+
+            console.log(data);
+        });
+}
+
+function removeUser(e) {
+    const id = e.target.getAttribute('user-id');
+
+    fetch(`/api/users/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+        })
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.json();
+            }
+        })
+        .then(res => {
+            console.log('Response:', res);
+            if (res.status === 'ACK') {
+                document.querySelector('.user-cards').removeChild(e.target);
+
+                // Regenerate original list
+                users = [...document.querySelectorAll('user-card')];
+
+                try {
+                    // TODO: Verify that deleting this node also deletes any associated links?
+                    Notifications.clearNotificationsAndUpdateData(id, true);
+            
+                    // Update viz
+                    update(data);
+
+                    console.log(data);
+                } catch (err) {
+                    console.log('Error deleting user:', err);            
+                }            
+            }
         });
 }
 
@@ -150,23 +233,25 @@ async function initUsers() {
 
     const users = [];
     data.forEach(id => {
-        // console.log('ID:', id);
         users.push(addUserCard(id));
     });
 
     return Promise.all(users);
 }
 
-function addUserCard(id, name) {
+// This is almost entirely useless, because we've already made the request in addUser() ??
+function addUserCard(id) {
     document.querySelector('button.send-notification-random').disabled = false;
 
     const el = document.createElement('user-card');
     el.setAttribute('user-id', id);
-    el.addEventListener('notification-update', updateNotifications);
+    el.addEventListener('notification-clear', clearNotifications);
+    el.addEventListener('user-remove', removeUser);
 
     users.push(el);
     document.querySelector('.user-cards').appendChild(el);
 
+    // TODO: Remove this entirely (we're already getting initial payload at init or when adding users
     return fetch(`/api/users/${id}`)
         .catch(err => console.error(err))
         .then(response => {
@@ -206,6 +291,7 @@ function generateNotificationData(users, total) {
     return notificationData;
 }
 
+// TODO: Rename to sendMessageRandom because that is what we're doing
 function sendNotificationsRandom(e) {
     const button = e.currentTarget;
     button.disabled = true;
@@ -218,10 +304,10 @@ function sendNotificationsRandom(e) {
     });
 
     const intervalTotal = Math.floor(Math.random() * 40) + 10;
-    console.log(`Send ${intervalTotal} notifications`);
+    // console.log(`Send ${intervalTotal} notifications`);
 
     const notificationData = generateNotificationData(users, intervalTotal);
-    console.log(notificationData);
+    // console.log(notificationData);
 
     let intervalCount = 0;
     let interval = setInterval(e => {
@@ -229,11 +315,6 @@ function sendNotificationsRandom(e) {
             clearInterval(interval);
 
             button.disabled = false;
-
-            // TODO: Add a transition to the SVG itself
-            // setTimeout(() => {
-            //     visualizationUpdate();
-            // }, 100);
         } else {
             sendNotification(notificationData[intervalCount]);
 
@@ -246,7 +327,7 @@ function sendNotificationsRandom(e) {
  * Visualization utiis
  * @param {*} obj
  */
-const notificationsHistory = [];
+let notificationsHistory = [];
 
 function visualizationAddLink(obj) {
     notificationsHistory.push(obj);
@@ -256,12 +337,11 @@ function visualizationAddLink(obj) {
 // TODO: Add debounced call to pre-generate graph for the next visit
 function visualizationUpdate() {
 
-    // Tried and true
-    // data.links = notificationsHistory;
-    console.log(`${notificationsHistory.length} notifications`)
+    // console.log(`${notificationsHistory.length} notifications`)
 
     const notificationsMap = {};
     notificationsHistory.forEach(datum => {
+        // console.log(datum);
         const id = `${datum.source}:${datum.target}`;
         const idReverse = `${datum.target}:${datum.source}`;
 
@@ -290,7 +370,7 @@ function visualizationUpdate() {
     // Convert object into array for D3
     data.links = Object.keys(notificationsMap).map(id => {
         return notificationsMap[id];
-    })
+    });
     
     update(data);
 }
@@ -306,14 +386,12 @@ const CLASS_HOT = 'client';
  * 
  * @param {*} index
  */
+// TODO: Rename to sendMessage
 function sendNotification(contacts) {
     const elSender = users[contacts.from];
 
-    // For some reason, this is required to prevent style="--url" from being set
-    // even though sender's notifications are not being updated?
-    elSender.classList.add(CLASS_HOT);
-
     const uuidSender = elSender.getAttribute('user-id');
+    data.nodes[userMap[uuidSender]].weight += 0.025;
 
     // Enables CSS for client-side notification count
     const elRecipient = users[contacts.to];
@@ -322,17 +400,32 @@ function sendNotification(contacts) {
 
     // TODO: Adapt to send UUIDs for sender/receiver
     const uuidRecipient = elRecipient.getAttribute('user-id');
+    data.nodes[userMap[uuidRecipient]].weight += 0.025;
 
     // TODO: Decouple sender/receiver transitions
     //
     // Trigger CSS transition
     elSender.dispatchEvent(new Event('notification-request'));
 
+    const payload = {
+        id: null,
+        source: uuidSender,
+        target: uuidRecipient,
+        content: `Foo bar ${Math.random() * 1000}`
+    };
+
     // Update data for D3
     visualizationAddLink({ source: uuidSender, target: uuidRecipient });
     visualizationUpdate();
     
-    fetch(`/api/notifications/${uuidSender}:${uuidRecipient}`)
+    fetch(`/api/users/${uuidSender}/messages`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
         .catch(err => console.error(err))
         .then(response => {
             if (!response.ok) {
@@ -347,26 +440,24 @@ function sendNotification(contacts) {
 }
 
 // TODO: Distinguish between this and _clearNotifications_ which needs to exist
-function updateNotifications(e) {
-    console.log('Update notifications');
+function clearNotifications(e) {
+    console.log('Clear notifications');
 
     // Glob all requests if request comes from outside of a user card
     const USER_CARD = 'user-card';
     const els = (e.currentTarget.nodeName.toLowerCase() === USER_CARD) ? [e.currentTarget] : [...document.querySelectorAll('user-card')] ;
     const ids = els.map(el => el.getAttribute('user-id'));
-    const notifications = 0;
+    if (ids.length === 0) {
+        console.log('No users, exiting..');
+        return;
+    }
 
     fetch(`/api/notifications/${ids}`, {
-            method: 'PATCH',
+            method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(
-                {
-                    notifications
-                }
-            )
         })
         .catch(err => console.error(err))
         .then(response => {
@@ -377,15 +468,78 @@ function updateNotifications(e) {
             }
         })
         .then(data => {
-            console.log('Notifications updated?', data, els);
+            console.log('Notifications cleared?', data, els);
         });
+    
 
-    // TODO: What is this hack for?
+    Notifications.clearNotificationsAndUpdateData(ids);
+    
+    // Update viz
+    update(data);
+
+
+    // Reset element
     els.forEach(el => {
+        el.notifications = 0;
         el.classList.remove('client');
         el.style = ``;
     })
 }
+
+
+// TODO: Centralize data and notification objects?
+class Notifications {
+
+    static clearNotificationsAndUpdateData(ids, removeUser = false) {
+
+        ids = Array.isArray(ids) ? ids : [ids] ;
+        console.log('Delete notifications for IDs:', ids, removeUser);
+
+        if (ids.length === 1) {
+            const id = ids[0];
+            
+            if (removeUser) {
+                notificationsHistory = notificationsHistory.filter(notification => {
+                    return (notification.target !== id && notification.source !== id);
+                });
+    
+                data.links = data.links.filter(link => {
+                    return (link.target !== id && link.source !== id);
+                });
+
+                const index = userMap[id];
+                console.log(`Remove user ${data.nodes[index].name} from index`, index);
+
+                data.nodes.splice(index, 1);
+
+                delete userMap[id];
+                generateUserMap();
+            } else {
+                data.nodes[userMap[id]].weight = 1;
+
+                notificationsHistory = notificationsHistory.filter(notification => {
+                    return (notification.target !== id);
+                });
+
+                // TODO: Confirm whether the following are derived data
+                // and so redundant?
+                data.links = data.links.filter(link => {
+                    return (link.target !== id);
+                });
+            }
+        } else {
+            data.links = [];
+    
+            data.nodes.forEach(node => {
+                node.weight = 1;
+            });
+    
+            notificationsHistory = [];
+        }
+    }
+}
+
+
 
 /**
  * Update notification badges for the first time
@@ -425,11 +579,11 @@ function updateBadgeNotification(uuid) {
 
     } else {
         // Use for initialization, until new notifications are received via socket
-        el.style = `--url: url('../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
+        el.style = `--url: url('../../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
     }
     
-    // TBD: How does this toggle work?
-    // el.classList.toggle('updated');
+    // Flip the badge
+    el.classList.toggle('updated');
 }
 
 window.addEventListener('DOMContentLoaded', init);

@@ -51,7 +51,7 @@ class ProcessorApp {
             }
 
             try {
-                // Udpate data
+                // Update data
                 const file = fs.readFileSync(path, { encoding: 'utf-8'});
                 const data = JSON.parse(file);
 

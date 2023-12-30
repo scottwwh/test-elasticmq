@@ -20,6 +20,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+const names = require('./helpers/names');
 
 //-- Web sockets --//
 
@@ -147,11 +148,12 @@ class ServiceApp {
         }
     }
 
-    async addUser(name) {
+    async addUser() {
         const payload = {
             id: crypto.randomUUID(),
-            name,
-            notifications: 0
+            name: names.getRandom(),
+            notifications: 0,
+            weight: 1,
         };
 
         const path = this.dataRoot + `${payload.id}.json`;
@@ -182,7 +184,20 @@ class ServiceApp {
                 console.error('SQS error');
             }
 
-            return payload.id;
+            return payload;
+        } catch(err) {
+            console.error(err)
+        }
+    }
+
+    async removeUser(id) {
+        const pathData = this.dataRoot + `${id}.json`;
+        const pathBadge = this.cdnRoot + `${id}.svg`;
+
+        try {
+            // TODO: Move to processor
+            fs.unlinkSync(pathData);
+            fs.unlinkSync(pathBadge);
         } catch(err) {
             console.error(err)
         }
@@ -203,17 +218,18 @@ class ServiceApp {
         return users;
     }
 
-    async sendNotification(ids) {
-        // 0 = sender, 1 = recipient
-        const uuids = ids.split(':');
-        // console.log(uuids);
+    async sendMessage(id, body) {
+
+        if (id !== body.source) {
+            throw new Error("Invalid payload");
+        }
 
         const messages = [];
         const params = {
-            id: 'message' + uuids[1], // Assume this could be a rootId?
+            id: 'message' + body.target, // Assume this could be a rootId?
             body: {
                 type: 'notification-add',
-                id: uuids[1]
+                id: body.target
             },
 
             // Causes an exception?
@@ -232,7 +248,7 @@ class ServiceApp {
         await this.notificationRequests.send(messages);
     }
 
-    async updateNotifications(id) {
+    async clearNotifications(id) {
         try {
             // This seems very wasteful, because the same thing is happening in ProcessorApp?
             const path = this.dataRoot + `${id}.json`;
