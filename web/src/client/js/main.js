@@ -147,6 +147,14 @@ function addUser(e) {
 
             cache.data.nodes.push(userData);
 
+            // This is an incredibly nasty hack to force a render :(
+            userCardList.users = [];
+            cache.data.userIds.push(userData.id);
+
+            // Must be set explicitly to trigger an update, requestUpdate() does nothing
+            userCardList.users = cache.data.userIds;
+            // console.log(userCardList.users);
+
             // Update map
             generateUserMap();
 
@@ -480,6 +488,12 @@ class Notifications {
                 });
 
                 const index = userMap[id];
+
+                // Once again, the same nasty hack!
+                userCardList.users = [];
+                cache.data.userIds.splice(index, 1);
+                userCardList.users = cache.data.userIds;
+
                 console.log(`Remove user ${cache.data.nodes[index].name} from index`, index);
 
                 cache.data.nodes.splice(index, 1);
