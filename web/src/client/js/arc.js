@@ -79,6 +79,7 @@ function update(data) {
   // Add the circle for the nodes
   var nodes = svg
     .selectAll("circle")
+    .data(data.nodes, function(d) { return d.id }); // Necessary for clean removal
 
   nodes
     .data(data.nodes)
@@ -88,9 +89,8 @@ function update(data) {
       .style("fill", "#ddd")
     // Applies to both links and links.enter()
     .merge(nodes)
-      .transition()
       .attr("cy", height - 30)
-      // .attr("cx", function(d, i){ return xNew(d, i)})
+      .transition()
       .attr("cx", function(d){ return x(d.name)})
       .attr("r", function(d){ return d.weight * 5 + 5})
 
@@ -144,7 +144,6 @@ function update(data) {
   }
 
 
-  /*
   // Add the links
   var links = svg
     .selectAll('path')
@@ -160,9 +159,19 @@ function update(data) {
     //
     // Applies to both links and links.enter()
     .merge(links)
-      // TODO: Make this work
-      // .attr("stroke", "#f00")
+      .attr("stroke", function(d) {
+        // Check old data for element for update based on weight
+        if (previousData.get(this) < d.weight) {
+          return "#f00";
+        } else {
+          return "#ddd";
+        }
+      })
+      .each(function(d) {
+        previousData.set(this, d.weight); // https://d3js.org/d3-selection/locals
+      })      
       .transition()
+      // .duration(100) // This causes issues with smooth transitions when adding/removing users
       .attr("stroke", "#ddd")
       .attr("stroke-width", function(d) { return d.weight })
       .attr('d', function (d) {
@@ -191,9 +200,9 @@ function update(data) {
     .transition()
     .attr("stroke-width", 0)
     .remove();
-  */
 
 
+/*
   // Add the links
   var links = svg
     .selectAll('path')
@@ -243,6 +252,7 @@ function update(data) {
           console.log('save on enter');
           previousData.set(this, d.weight);
         })
+        .transition()
         .attr('d', function (d) {
 
           let start = 0;
@@ -274,11 +284,12 @@ function update(data) {
     )
     .attr("fill", "none")
     .attr("stroke-width", function(d) { return d.weight })
-    .transition()
-    .duration(50)
+    // These conflict with transition when adding/removing users
+    // .transition()
+    // .duration(50)
     .attr("stroke", "#ddd")
     ;
-
+*/
 
 
     // Add the highlighting functionality
