@@ -5,9 +5,8 @@ import { update } from './arc.js';
 import API from './API.js';
 import Cache from './Cache.js';
 
-let users = [];
 let cache = null;
-let userCardList = null;
+let userCardList = new UserCardList();
 const userMap = {};
 
 
@@ -54,10 +53,8 @@ async function init(e) {
         visualizationUpdate();
     });
     
-    userCardList = document.createElement('user-card-list');
     const elCards = document.querySelector('.user-cards');
     elCards.appendChild(userCardList);
-
     elCards.addEventListener('transitionend', e => {
         // Avoid bubbling events from user-card elements
         if (!e.target.classList.contains('user-cards'))
@@ -142,12 +139,13 @@ function addUser(e) {
             }
         })
         .then(res => {
-            const user = res.data;
-            // console.log('User created?', user);
+            const userData = res.data;
+            // console.log('User created?', userData);
 
-            addUserCard(user.id);
+            // These data are only used during initialization, which starts with a list of IDs
+            const unusedUserData = addUserCard(userData.id);
 
-            cache.data.nodes.push(user);
+            cache.data.nodes.push(userData);
 
             // Update map
             generateUserMap();
@@ -182,7 +180,7 @@ function removeUser(e) {
                 document.querySelector('.user-cards').removeChild(e.target);
 
                 // Regenerate original list
-                users = [...document.querySelectorAll('user-card')];
+                cache.userElements = [...document.querySelectorAll('user-card')];
 
                 try {
                     // TODO: Verify that deleting this node also deletes any associated links?
@@ -204,19 +202,19 @@ function removeUser(e) {
  */ 
 async function initUsers() {
     const data = await API.getUsers();
-    const users = [];
+    const userData = [];
     data.forEach(id => {
         // Old
-        users.push(addUserCard(id));
+        userData.push(addUserCard(id));
 
         // New
-        cache.data.users.push(id);
+        cache.data.userIds.push(id);
 
         // Must be set explicitly to trigger an update, requestUpdate() does nothing
-        userCardList.data = cache.data.users;
+        userCardList.users = cache.data.userIds;
     });
 
-    return Promise.all(users);
+    return Promise.all(userData);
 }
 
 // This is almost entirely useless, because we've already made the request in addUser() ??
@@ -228,7 +226,7 @@ function addUserCard(id) {
     el.addEventListener('notification-clear', clearNotifications);
     el.addEventListener('user-remove', removeUser);
 
-    users.push(el);
+    cache.userElements.push(el);
     document.querySelector('.user-cards').appendChild(el);
 
     // TODO: Remove this entirely (we're already getting initial payload at init or when adding users
@@ -254,19 +252,19 @@ function addUserCard(id) {
         });
 }
 
-function generateNotificationData(users, total) {
+function generateNotificationData(userIds, total) {
     const notificationData = [];
     for (var i = 0; i < total; i++) {
         // Sender
-        const from = Math.floor(Math.random() * users.length);
+        const source = Math.floor(Math.random() * userIds.length);
 
         // Recipient
-        let to = Math.floor(Math.random() * users.length);
-        while (to === from) {
-            to = Math.floor(Math.random() * users.length);
+        let target = Math.floor(Math.random() * userIds.length);
+        while (target === source) {
+            target = Math.floor(Math.random() * userIds.length);
         }
 
-        notificationData.push({ from, to });
+        notificationData.push({ source: userIds[source], target: userIds[target] });
     }
     return notificationData;
 }
@@ -276,17 +274,17 @@ function sendNotificationsRandom(e) {
     const button = e.currentTarget;
     button.disabled = true;
 
-    if (users.length === 0) return;
+    if (cache.userElements.length === 0) return;
 
     // Pre-clean since events/intervals on web component are still not perfect
-    users.forEach(el => {
+    cache.userElements.forEach(el => {
         el.classList.remove('sending', 'receiving', 'completed');
     });
 
     const intervalTotal = Math.floor(Math.random() * 40) + 10;
     // console.log(`Send ${intervalTotal} notifications`);
 
-    const notificationData = generateNotificationData(users, intervalTotal);
+    const notificationData = generateNotificationData(cache.data.userIds, intervalTotal);
     // console.log(notificationData);
 
     let intervalCount = 0;
@@ -368,37 +366,31 @@ const CLASS_HOT = 'client';
  */
 // TODO: Rename to sendMessage
 function sendNotification(contacts) {
-    const elSender = users[contacts.from];
+    const { source, target} = contacts;
+    cache.data.nodes[userMap[source]].weight += 0.025;
+    cache.data.nodes[userMap[target]].weight += 0.025;
 
-    const uuidSender = elSender.getAttribute('user-id');
-    cache.data.nodes[userMap[uuidSender]].weight += 0.025;
+    // Dispatch event (will trigger CSS transition)
+    const elSender = document.querySelector(`user-card[user-id="${source}"]`);
+    elSender.dispatchEvent(new Event('notification-request'));
 
-    // Enables CSS for client-side notification count
-    const elRecipient = users[contacts.to];
+    // Enable CSS to receive event via web socket
+    const elRecipient = document.querySelector(`user-card[user-id="${target}"]`);
     elRecipient.classList.add('receiving');
     elRecipient.classList.add(CLASS_HOT);
 
-    // TODO: Adapt to send UUIDs for sender/receiver
-    const uuidRecipient = elRecipient.getAttribute('user-id');
-    cache.data.nodes[userMap[uuidRecipient]].weight += 0.025;
-
-    // TODO: Decouple sender/receiver transitions
-    //
-    // Trigger CSS transition
-    elSender.dispatchEvent(new Event('notification-request'));
-
     const payload = {
         id: null,
-        source: uuidSender,
-        target: uuidRecipient,
+        source,
+        target,
         content: `Foo bar ${Math.random() * 1000}`
     };
 
     // Update data for D3
-    visualizationAddLink({ source: uuidSender, target: uuidRecipient });
+    visualizationAddLink({ source, target });
     visualizationUpdate();
     
-    fetch(`/api/users/${uuidSender}/messages`, {
+    fetch(`/api/users/${source}/messages`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -526,11 +518,11 @@ class Notifications {
  */
 function updateBadges() {
     // console.log('Udpate badges for', users.length, 'users');
-    if (users.length === 0) return ;
+    if (cache.userElements.length === 0) return ;
 
     const updates = [];
-    for (var i = 0; i < users.length; i++) {
-        const uuid = users[i].getAttribute('user-id');
+    for (var i = 0; i < cache.userElements.length; i++) {
+        const uuid = cache.userElements[i].getAttribute('user-id');
         const data = updateBadgeNotification(uuid);
         updates.push(data);
     }

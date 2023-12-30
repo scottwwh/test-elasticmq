@@ -1,4 +1,5 @@
 import {LitElement, html, css} from 'https://unpkg.com/lit-element@2.2.1/lit-element.js?module';
+import { UserCard } from './../elements/UserCard.js';
 
 export class UserCardList extends LitElement {
   static styles = css``;
