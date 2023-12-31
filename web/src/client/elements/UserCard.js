@@ -4,9 +4,13 @@ import API from './../js/API.js';
 export class UserCard extends LitElement {
   static styles = css`
   
-  p { margin: 0.5rem; padding: 0; }
+  p { margin: 0.5rem 0; padding: 0; }
 
   small { font-size: 50%; }
+
+  button {
+    font-size: 70%;
+  }
   
   `;
 
@@ -112,8 +116,7 @@ export class UserCard extends LitElement {
     const names = this.name.split(' ');
     const firstName = names[0];
     const lastName = names[1] || " ";
-    return html`<p><small>${this.id}</small></p>
-      <p><span>${firstName}<br />${lastName}</span></p>
+    return html`<p><span>${firstName}<br />${lastName}</span></p>
       <p>
         <button @click="${this.handleClear}">Clear</button>
         <button style="color: maroon" @click="${this.handleRemove}">Delete</button>

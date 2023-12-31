@@ -6,9 +6,16 @@ const CLASS_HOT = 'client';
 export class UserCardList extends LitElement {
   static styles = css`
 
+/*
+:root {
+  display: block;
+  border: 1px solid orange;
+}
+*/
+
 user-card {
   display: inline-block;
-  padding: 1rem;
+  padding: 0.5rem;
   margin: 0.5rem;
   background-color: var(--main-bg-color);
   border: 2px solid #aaa;

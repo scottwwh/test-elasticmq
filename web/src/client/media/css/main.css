@@ -38,73 +38,10 @@ article {
     display: none;
 }
 
-/* TODO: Remove this */
-user-card {
-    display: none;
-}
-
-/*
-user-card {
-    display: inline-block;
-    padding: 1rem;
-    margin: 0.5rem;
-    background-color: var(--main-bg-color);
-    border: 2px solid #aaa;
-    border-radius: 1.5rem;
-    width: 7rem;
-    text-align: center;
-    position: relative;
-    opacity: 0.75;
-}
-
-user-card.sending {
-    background: gold;
-    border-color: orange;
-}
-
-user-card.sending.completed {
-    transition: all 0.5s;
-    background-color: #ddd;
-    border-color: #aaa;
-}
-
-user-card:before {
-    position: absolute;
-    top: 0.25rem;
-    right: 0.25rem;
-    content: " ";
-    background-repeat: no-repeat;
-    background-image: var(--url);
-    background-size: auto auto;
-    width: 25px;
-    height: 25px;
-    transition: all 0.5s, background-color 0.25s;
-
-    border-radius: 12.5px;
-}
-
-user-card.client:before {
-    content: attr(notifications);
-    background-color: maroon;
-    background-image: none;
-
-    color: #fff;
-    font-family: Arial;
-    font-size: 0.95rem;
-    font-weight: bold;
-    line-height: 1.6rem;
-    text-align: center;
-    vertical-align: baseline;
-}
-
-user-card.updated:before {
-    transform: rotateY(359deg);
-}
-
-user-card.client.receiving:before {
-    background-color: red;
-}
-*/
+/* user-card-list {
+    display: block;
+    border: 1px solid orange;
+} */
 
 #my_dataviz {
     border: 2px dotted orange;
