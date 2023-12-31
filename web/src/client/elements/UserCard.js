@@ -30,7 +30,7 @@ export class UserCard extends LitElement {
   constructor() {
     super();
     this.name = 'Anonymous';
-    this.notifications = '';
+    this.notifications = 0;
     this.notificationTime = null;
     this.notificationInterval = null;
 
@@ -67,13 +67,24 @@ export class UserCard extends LitElement {
     }
   }
 
+
+  dispatchCustomEvent(type, detail = null) {
+    const customEvent = new CustomEvent(type, {
+      detail,
+      bubbles: true, 
+      composed: true
+    });
+
+    this.dispatchEvent(customEvent);
+  }
+
   handleClear(e) {
     this.notifications = 0;
-    this.dispatchEvent(new Event('notification-clear'));
+    this.dispatchCustomEvent('notification-clear');
   }
 
   handleRemove(e) {
-    this.dispatchEvent(new Event('user-remove'));
+    this.dispatchCustomEvent('user-remove');
   }
 
   render() {

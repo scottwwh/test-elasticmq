@@ -38,6 +38,12 @@ article {
     display: none;
 }
 
+/* TODO: Remove this */
+user-card {
+    display: none;
+}
+
+/*
 user-card {
     display: inline-block;
     padding: 1rem;
@@ -62,7 +68,6 @@ user-card.sending.completed {
     border-color: #aaa;
 }
 
-/* SVGs badges */
 user-card:before {
     position: absolute;
     top: 0.25rem;
@@ -78,7 +83,6 @@ user-card:before {
     border-radius: 12.5px;
 }
 
-/* Pure CSS badges */
 user-card.client:before {
     content: attr(notifications);
     background-color: maroon;
@@ -88,7 +92,7 @@ user-card.client:before {
     font-family: Arial;
     font-size: 0.95rem;
     font-weight: bold;
-    line-height: 1.6rem; /* Approximating the SVG */
+    line-height: 1.6rem;
     text-align: center;
     vertical-align: baseline;
 }
@@ -100,6 +104,7 @@ user-card.updated:before {
 user-card.client.receiving:before {
     background-color: red;
 }
+*/
 
 #my_dataviz {
     border: 2px dotted orange;

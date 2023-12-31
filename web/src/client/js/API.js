@@ -28,6 +28,27 @@ class API {
                 }
             })
     }
+
+    static async deleteNotifications(ids) {
+        return fetch(`/api/notifications/${ids}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+        })
+        .catch(err => console.error(err))
+        .then(response => {
+            if (!response.ok) {
+                throw Error("URL not found");
+            } else {
+                return response.json();
+            }
+        })
+        .then(data => {
+            return data;
+        });        
+    }
 }
 
 export default API;
