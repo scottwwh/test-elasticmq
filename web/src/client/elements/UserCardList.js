@@ -87,6 +87,11 @@ user-card.client.receiving:before {
   //   console.log(this.users); // logs current value
   // }
 
+  addUser(id, data = null) {
+    // console.log(`Create user card for ID ${id} with data ${data ? JSON.stringify(data) : null }`);
+    this.users = this.users.concat(id);
+  }
+
   // TODO: Handle
   removeUser(e) {
     console.log('removeUser:', e);
@@ -109,11 +114,11 @@ user-card.client.receiving:before {
     const { source, target} = contacts;
 
     // Dispatch event (will trigger CSS transition)
-    const elSender = this.shadowRoot.querySelector(`user-card[user-id="${source}"]`);
+    const elSender = this.shadowRoot.querySelector(`user-card[id="${source}"]`);
     elSender.dispatchEvent(new Event('notification-request'));
 
     // Enable CSS to receive event via web socket
-    const elRecipient = this.shadowRoot.querySelector(`user-card[user-id="${target}"]`);
+    const elRecipient = this.shadowRoot.querySelector(`user-card[id="${target}"]`);
     elRecipient.classList.add('receiving');
     elRecipient.classList.add(CLASS_HOT);
   }
@@ -125,8 +130,8 @@ user-card.client.receiving:before {
    * @returns
    */
   updateBadgeNotification(uuid) {
-    const el = this.shadowRoot.querySelector(`[user-id="${uuid}"]`);
-    console.log(el);
+    const el = this.shadowRoot.querySelector(`[id="${uuid}"]`);
+    // console.log(el);
 
     if (el.classList.contains(CLASS_HOT)) {
         console.log('Client-side update')
@@ -147,7 +152,7 @@ user-card.client.receiving:before {
   // Reset elements
   clearBadgeNotifications(ids) {
     ids.forEach(uuid => {
-      const el = this.shadowRoot.querySelector(`[user-id="${uuid}"]`);
+      const el = this.shadowRoot.querySelector(`[id="${uuid}"]`);
       el.notifications = 0;
       el.classList.remove('client');
       el.style = ``;
@@ -160,7 +165,7 @@ user-card.client.receiving:before {
       html`<user-card
         @user-remove="${this.removeUser}"
         @notification-clear="${this.clearNotifications}"
-        user-id="${id}" name="${id}"></user-card>`
+        id="${id}"></user-card>`
     )}`;
   }
 }

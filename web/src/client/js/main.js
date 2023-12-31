@@ -145,18 +145,13 @@ function addUser(e) {
             const userData = res.data;
             // console.log('User created?', userData);
 
-            // These data are only used during initialization, which starts with a list of IDs
-            const unusedUserData = addUserCard(userData.id);
-
             cache.data.nodes.push(userData);
 
-            // This is an incredibly nasty hack to force a render :(
-            userCardList.users = [];
-            cache.data.userIds.push(userData.id);
 
-            // Must be set explicitly to trigger an update, requestUpdate() does nothing
-            userCardList.users = cache.data.userIds;
-            // console.log(userCardList.users);
+            userCardList.addUser(userData.id, userData);
+
+            // Update cache from component data
+            cache.data.userIds = userCardList.users;
 
             document.querySelector('button.send-notification-random').disabled = false;
 
@@ -171,8 +166,8 @@ function addUser(e) {
 
 function removeUser(e) {
     const origin = e.composedPath()[0];
-    const id = origin.getAttribute('user-id');
-    console.log(e, id);
+    const id = origin.getAttribute('id');
+    // console.log(e, id);
 
     // return;
     fetch(`/api/users/${id}`, {
@@ -213,39 +208,21 @@ function removeUser(e) {
  */ 
 async function initUsers() {
     const ids = await API.getUsers();
-    const userData = [];
+    const userRequests = [];
     ids.forEach(id => {
         // Old
-        userData.push(addUserCard(id));
+        userRequests.push(API.getUser(id));
 
-        // New
-        cache.data.userIds.push(id);
+        userCardList.addUser(id);
 
-        // Must be set explicitly to trigger an update, requestUpdate() does nothing
-        userCardList.users = cache.data.userIds;
+        // Update cache
+        cache.data.userIds = userCardList.users;
     });
 
+    // TODO: Considering deferring this until all user cards have been loaded (since this will impact the count)
     document.querySelector('button.send-notification-random').disabled = false;
 
-    return Promise.all(userData);
-}
-
-// This is almost entirely useless, because we've already made the request in addUser() ??
-function addUserCard(id) {
-    // TODO: Remove this entirely (we're already getting initial payload at init or when adding users
-    return fetch(`/api/users/${id}`)
-        .catch(err => console.error(err))
-        .then(response => {
-            // console.log('User data:', response);
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                return response.json();
-            }
-        })
-        .then(data => {            
-            return data;
-        });
+    return Promise.all(userRequests);
 }
 
 function generateNotificationData(userIds, total) {
@@ -408,7 +385,7 @@ function clearNotifications(e) {
     // Glob all requests if request comes from outside of a user card
     const USER_CARD = 'user-card';
     if (origin.nodeName.toLowerCase() === USER_CARD) {
-        ids = [origin.getAttribute('user-id')];
+        ids = [origin.getAttribute('id')];
     }
 
     if (ids.length === 0) {

@@ -1,7 +1,14 @@
 import {LitElement, html, css} from 'https://unpkg.com/lit-element@2.2.1/lit-element.js?module';
+import API from './../js/API.js';
 
 export class UserCard extends LitElement {
-  static styles = css`p { margin: 0.5rem; padding: 0; }`;
+  static styles = css`
+  
+  p { margin: 0.5rem; padding: 0; }
+
+  small { font-size: 50%; }
+  
+  `;
 
   static get properties() {
     return {
@@ -36,6 +43,19 @@ export class UserCard extends LitElement {
 
     this.addEventListener('notification-request', this.handleNotificationRequest);
     this.addEventListener('transitionend', this.resetStyles);
+  }
+
+  // Ref: https://lit.dev/docs/components/lifecycle/#firstupdated
+  //
+  // DOM has been updated the first time; determine whether API needs to be called or not?
+  firstUpdated() {
+    API.getUser(this.id)
+      .then(data => {
+        // console.log(data);
+        this.name = data.name;
+        this.notifications = data.notifications;
+        this.weight = data.weight;
+      })
   }
 
   resetStyles(e) {
@@ -88,10 +108,12 @@ export class UserCard extends LitElement {
   }
 
   render() {
+    // console.log(`Render user card for ${this.id}`);
     const names = this.name.split(' ');
     const firstName = names[0];
     const lastName = names[1] || " ";
-    return html`<p><span>${firstName}<br />${lastName}</span></p>
+    return html`<p><small>${this.id}</small></p>
+      <p><span>${firstName}<br />${lastName}</span></p>
       <p>
         <button @click="${this.handleClear}">Clear</button>
         <button style="color: maroon" @click="${this.handleRemove}">Delete</button>

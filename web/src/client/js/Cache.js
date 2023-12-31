@@ -1,8 +1,6 @@
 // Stringified version of D3 file
 const DataObject = () => {
     return {
-        // userElements: [],
-
         // List of user IDs which drives card elements
         userIds: [],
 
@@ -25,9 +23,6 @@ class Cache {
     constructor() {
         this._data = DataObject();
 
-        // Only required for client implementation
-        this.userElements = [];
-        
         console.log('Cache initialized');
     }
 

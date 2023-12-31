@@ -16,6 +16,21 @@ class API {
            });
     }
 
+    static getUser(id) {
+        return fetch(`/api/users/${id}`)
+            .catch(err => console.error(err))
+            .then(response => {
+                if (!response.ok) {
+                    throw Error("URL not found");
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {            
+                return data;
+            });
+    }
+
     // Load initial visualization data
     static async getNotifications() {
         return fetch(`/api/notifications/`)
