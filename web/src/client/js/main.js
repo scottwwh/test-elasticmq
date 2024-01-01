@@ -1,5 +1,4 @@
 
-import { UserCard } from './../elements/UserCard.js';
 import { UserCardList } from './../elements/UserCardList.js';
 import { update } from './arc.js';
 import API from './API.js';
@@ -7,25 +6,15 @@ import Cache from './Cache.js';
 
 let cache = null;
 let userCardList = new UserCardList();
-const userMap = {};
 
-
-// TODO: Integrate this
-function sortByName(a, b) {
-    if (a.name < b.name) {
-        return -1;
-    }
-
-    if (a.name > b.name) {
-        return 1;
-    }
-
-    return 0;
-}
-  
-function generateUserMap() {
-    cache.data.nodes.forEach((user, i) => {
-        userMap[user.id] = i;
+// TODO: Refactor this into Cache as a getter
+function updateDataNodes() {
+    cache.data.nodes = userCardList.users.map((user, i) => {
+        return {
+            id: user.id,
+            name: user.name,
+            weight: 1,
+        }
     });
 }
 
@@ -36,20 +25,20 @@ async function init(e) {
     const userData = initUsers();
     userData.then(async res => {
 
-        // Update data for D3
-        cache.data.nodes = res.map((user, i) => {
-            return {
-                id: user.id,
-                name: user.name,
-                weight: 1,
-            }
-        });
-        generateUserMap();
+        // TODO: Considering deferring this until all user cards have been loaded (since this will impact the count)
+        document.querySelector('button.send-notification-random').disabled = false;
+
+        updateDataNodes();
 
         updateBadges();
 
         const notificationData = await API.getNotifications();
         notificationsHistory = notificationData.notifications;
+
+        // Update cache from component data
+        cache.data.userIds = userCardList.users;
+        console.log('All done?');
+
         visualizationUpdate();
     });
     
@@ -145,22 +134,17 @@ function addUser(e) {
             const userData = res.data;
             // console.log('User created?', userData);
 
-            cache.data.nodes.push(userData);
-
-
             userCardList.addUser(userData.id, userData);
+
+            updateDataNodes();
 
             // Update cache from component data
             cache.data.userIds = userCardList.users;
 
             document.querySelector('button.send-notification-random').disabled = false;
 
-            // Update map
-            generateUserMap();
-
             update(cache.data);
-
-            console.log(cache.data);
+            // console.log(cache.data);
         });
 }
 
@@ -208,19 +192,15 @@ function removeUser(e) {
  */ 
 async function initUsers() {
     const ids = await API.getUsers();
+
+    // This is duplicating logic in UserCardList!
     const userRequests = [];
     ids.forEach(id => {
-        // Old
-        userRequests.push(API.getUser(id));
-
-        userCardList.addUser(id);
+        userRequests.push(userCardList.addUser(id));
 
         // Update cache
         cache.data.userIds = userCardList.users;
     });
-
-    // TODO: Considering deferring this until all user cards have been loaded (since this will impact the count)
-    document.querySelector('button.send-notification-random').disabled = false;
 
     return Promise.all(userRequests);
 }
@@ -237,7 +217,7 @@ function generateNotificationData(userIds, total) {
             target = Math.floor(Math.random() * userIds.length);
         }
 
-        notificationData.push({ source: userIds[source], target: userIds[target] });
+        notificationData.push({ source: userIds[source].id, target: userIds[target].id });
     }
     return notificationData;
 }
@@ -337,10 +317,11 @@ const CLASS_HOT = 'client';
 // TODO: Rename to sendMessage
 function sendNotification(contacts) {
     const { source, target} = contacts;
-    cache.data.nodes[userMap[source]].weight += 0.025;
-    cache.data.nodes[userMap[target]].weight += 0.025;
 
-   userCardList.showNotification(contacts);
+    cache.data.nodes[userCardList.userMap[source]].weight += 0.025;
+    cache.data.nodes[userCardList.userMap[target]].weight += 0.025;
+
+    userCardList.showNotification(contacts);
 
     const payload = {
         id: null,
@@ -378,7 +359,7 @@ function sendNotification(contacts) {
 function clearNotifications(e) {
     // Ref: https://lit.dev/docs/v2/components/events/#shadowdom-retargeting
     const origin = e.composedPath()[0];
-    let ids = cache.data.userIds;
+    let ids = [];
 
     // TODO: Replace calls to get attribute with IDs (which is the end result)
     //
@@ -386,6 +367,8 @@ function clearNotifications(e) {
     const USER_CARD = 'user-card';
     if (origin.nodeName.toLowerCase() === USER_CARD) {
         ids = [origin.getAttribute('id')];
+    } else {
+        ids = cache.data.userIds;
     }
 
     if (ids.length === 0) {
@@ -427,21 +410,10 @@ class Notifications {
                     return (link.target !== id && link.source !== id);
                 });
 
-                const index = userMap[id];
-
-                // Once again, the same nasty hack!
-                userCardList.users = [];
-                cache.data.userIds.splice(index, 1);
-                userCardList.users = cache.data.userIds;
-
-                console.log(`Remove user ${cache.data.nodes[index].name} from index`, index);
-
-                cache.data.nodes.splice(index, 1);
-
-                delete userMap[id];
-                generateUserMap();
+                updateDataNodes();
             } else {
-                cache.data.nodes[userMap[id]].weight = 1;
+                // console.log('User map:', userCardList.userMap);
+                cache.data.nodes[userCardList.userMap[id]].weight = 1;
 
                 notificationsHistory = notificationsHistory.filter(notification => {
                     return (notification.target !== id);

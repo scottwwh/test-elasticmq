@@ -1,5 +1,4 @@
 import {LitElement, html, css} from 'https://unpkg.com/lit-element@2.2.1/lit-element.js?module';
-import API from './../js/API.js';
 
 export class UserCard extends LitElement {
   static styles = css`
@@ -16,8 +15,7 @@ export class UserCard extends LitElement {
 
   static get properties() {
     return {
-      name: {type: String},
-      id: {type: String},
+      data: { type: Object },
       notifications: {
         type: String,
         reflect: true,
@@ -40,7 +38,7 @@ export class UserCard extends LitElement {
 
   constructor() {
     super();
-    this.name = 'Anonymous';
+    this.data = null;
     this.notifications = 0;
     this.notificationTime = null;
     this.notificationInterval = null;
@@ -49,17 +47,8 @@ export class UserCard extends LitElement {
     this.addEventListener('transitionend', this.resetStyles);
   }
 
-  // Ref: https://lit.dev/docs/components/lifecycle/#firstupdated
-  //
-  // DOM has been updated the first time; determine whether API needs to be called or not?
-  firstUpdated() {
-    API.getUser(this.id)
-      .then(data => {
-        // console.log(data);
-        this.name = data.name;
-        this.notifications = data.notifications;
-        this.weight = data.weight;
-      })
+  disconnectedCallback() {
+    console.log(`Remove ${this.id}?`)
   }
 
   resetStyles(e) {
@@ -91,7 +80,6 @@ export class UserCard extends LitElement {
     }
   }
 
-
   dispatchCustomEvent(type, detail = null) {
     const customEvent = new CustomEvent(type, {
       detail,
@@ -112,10 +100,13 @@ export class UserCard extends LitElement {
   }
 
   render() {
-    // console.log(`Render user card for ${this.id}`);
-    const names = this.name.split(' ');
-    const firstName = names[0];
-    const lastName = names[1] || " ";
+    let firstName = "Loading...";
+    let lastName = " ";
+    if (this?.data?.name) {
+      const names = this.data.name.split(' ');
+      firstName = names[0];
+      lastName = names[1];
+    }
     return html`<p><span>${firstName}<br />${lastName}</span></p>
       <p>
         <button @click="${this.handleClear}">Clear</button>

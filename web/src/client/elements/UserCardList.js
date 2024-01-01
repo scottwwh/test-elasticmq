@@ -1,7 +1,22 @@
 import {LitElement, html, css} from 'https://unpkg.com/lit-element@2.2.1/lit-element.js?module';
 import { UserCard } from './../elements/UserCard.js';
+import API from './../js/API.js';
 
 const CLASS_HOT = 'client';
+
+// TODO: Integrate this
+function sortByName(a, b) {
+  if (a.name < b.name) {
+      return -1;
+  }
+
+  if (a.name > b.name) {
+      return 1;
+  }
+
+  return 0;
+}
+
 
 export class UserCardList extends LitElement {
   static styles = css`
@@ -81,27 +96,64 @@ user-card.client.receiving:before {
   static get properties() {
     return {
       users: {type: Array},
-    };
+      userData: {type: Object},
+      userMap: {type: Object},  
+    }
   }
 
   constructor() {
     super();
     this.users = [];
+    this.userData = {};
+    this.userMap = {};
+    this.usersInitialized = 0;
   }
 
-  // updated(changedProperties) {
-  //   console.log('Changed properties:', changedProperties); // logs previous values
-  //   console.log(this.users); // logs current value
-  // }
+  /*
+  updated(changedProperties) {
+    console.log('Changed properties:', changedProperties); // logs previous values
+    console.log(this.users); // logs current value
+  }
+  */
 
-  addUser(id, data = null) {
-    // console.log(`Create user card for ID ${id} with data ${data ? JSON.stringify(data) : null }`);
-    this.users = this.users.concat(id);
+  async addUser(id, data = null) {
+
+    // New user has been added
+    if (data) {
+
+      // Allow time for template to be re-rendered, then show new user
+      setTimeout(e => {
+        const el = this.shadowRoot.querySelector(`user-card[id="${id}"]`);
+        el.dispatchEvent(new Event('notification-request'));
+      }, 50);
+
+    // Loading existing users during init
+    } else {
+      data = await API.getUser(id);
+    }
+
+    this.userData[id] = data;
+    this.updateUserData();
+
+    return id;
+  }
+
+  updateUserData() {
+    // Sort alphabetically by default (and possibly always)
+    this.users = Object.values(this.userData).sort(sortByName);
+
+    this.userMap = {};
+    this.users.forEach((user, i) => {
+      this.userMap[user.id] = i;
+    });
   }
 
   // TODO: Handle
   removeUser(e) {
-    console.log('removeUser:', e);
+    // console.log('removeUser:', e);
+
+    delete this.userData[e.target.data.id];
+    this.updateUserData();    
   }
 
   // TODO: Handle
@@ -119,6 +171,7 @@ user-card.client.receiving:before {
 
   showNotification(contacts) {
     const { source, target} = contacts;
+    // console.log(source, target);
 
     // Dispatch event (will trigger CSS transition)
     const elSender = this.shadowRoot.querySelector(`user-card[id="${source}"]`);
@@ -168,12 +221,12 @@ user-card.client.receiving:before {
 
   render() {
     return html`<p>These are the current users:</p>
-    ${this.users.map(id =>
-      html`<user-card
+      ${this.users.map(user => html`<user-card
+        .data=${user}
         @user-remove="${this.removeUser}"
         @notification-clear="${this.clearNotifications}"
-        id="${id}"></user-card>`
-    )}`;
+        id="${user.id}"></user-card>`
+      )}`;
   }
 }
 
