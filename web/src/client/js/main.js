@@ -28,16 +28,14 @@ async function init(e) {
         // TODO: Considering deferring this until all user cards have been loaded (since this will impact the count)
         document.querySelector('button.send-notification-random').disabled = false;
 
-        updateDataNodes();
+        // Update cache from component data
+        cache.data.userIds = userCardList.users;
 
+        updateDataNodes();
         updateBadges();
 
         const notificationData = await API.getNotifications();
         notificationsHistory = notificationData.notifications;
-
-        // Update cache from component data
-        cache.data.userIds = userCardList.users;
-        console.log('All done?');
 
         visualizationUpdate();
     });
@@ -368,7 +366,8 @@ function clearNotifications(e) {
     if (origin.nodeName.toLowerCase() === USER_CARD) {
         ids = [origin.getAttribute('id')];
     } else {
-        ids = cache.data.userIds;
+        // Actually full data
+        ids = cache.data.userIds.map(el => el.id)
     }
 
     if (ids.length === 0) {
@@ -443,12 +442,12 @@ class Notifications {
  * @returns 
  */
 function updateBadges() {
-    if (cache.data.userIds.length === 0) return ;
+    if (userCardList.users.length === 0) return ;
     // console.log('Udpate badges for', cache.data.userIds.length, 'users');
 
     const updates = [];
     for (var i = 0; i < cache.data.userIds.length; i++) {
-        const uuid = cache.data.userIds[i];
+        const uuid = cache.data.userIds[i].id;
         const data = userCardList.updateBadgeNotification(uuid);
         updates.push(data);
     }

@@ -47,6 +47,13 @@ export class UserCard extends LitElement {
     this.addEventListener('transitionend', this.resetStyles);
   }
 
+  /*
+  updated(changedProperties) {
+    console.log('Changed properties:', changedProperties); // logs previous values
+    console.log(this.data); // logs current value 
+  }
+  */
+
   disconnectedCallback() {
     console.log(`Remove ${this.id}?`)
   }

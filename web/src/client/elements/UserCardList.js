@@ -153,7 +153,7 @@ user-card.client.receiving:before {
     // console.log('removeUser:', e);
 
     delete this.userData[e.target.data.id];
-    this.updateUserData();    
+    this.updateUserData();
   }
 
   // TODO: Handle
@@ -197,6 +197,10 @@ user-card.client.receiving:before {
         console.log('Client-side update')
         el.style = '';
         el.notifications++;
+
+        // console.log('old:', this.userData[uuid].notifications);
+        // this.userData[uuid].notifications++;
+        // console.log('new:', this.userData[uuid].notifications);
 
     } else {
         // Use for initialization, until new notifications are received via socket
