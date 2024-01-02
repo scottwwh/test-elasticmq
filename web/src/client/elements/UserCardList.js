@@ -52,45 +52,6 @@ user-card.sending.completed {
   border-color: #aaa;
 }
 
-/* SVGs badges */
-user-card:before {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  content: " ";
-  background-repeat: no-repeat;
-  background-image: var(--url);
-  background-size: auto auto;
-  width: 25px;
-  height: 25px;
-  transition: all 0.5s, background-color 0.25s;
-
-  border-radius: 12.5px;
-}
-
-/* Pure CSS badges */
-user-card.client:before {
-  content: attr(notifications);
-  background-color: maroon;
-  background-image: none;
-
-  color: #fff;
-  font-family: Arial;
-  font-size: 0.95rem;
-  font-weight: bold;
-  line-height: 1.6rem; /* Approximating the SVG */
-  text-align: center;
-  vertical-align: baseline;
-}
-
-user-card.updated:before {
-  transform: rotateY(359deg);
-}
-
-user-card.client.receiving:before {
-  background-color: red;
-}
-
   `;
 
   static get properties() {
@@ -237,7 +198,6 @@ user-card.client.receiving:before {
     return html`<p>These are the current users:</p>
       ${this.users.map(user => html`<user-card
         .data=${user}
-        .notifications=${user.notifications}
         id="${user.id}"></user-card>`
       )}`;
   }
