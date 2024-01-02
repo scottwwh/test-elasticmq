@@ -82,10 +82,6 @@ user-card.sending.completed {
     // New user has been added
     if (data) {
 
-      // Work-around to inject reactive property into user data to drive display
-      data.client = true;
-      // console.log('new user:', data);
-
       // Allow time for template to be re-rendered, then show new user
       setTimeout(e => {
         const el = this.shadowRoot.querySelector(`user-card[id="${id}"]`);
@@ -95,10 +91,10 @@ user-card.sending.completed {
     // Loading existing users during init
     } else {
       data = await API.getUser(id);
-      data.client = false;
     }
 
-    // Tweak for notification badge
+    // Inject reactive property to drive notification badge
+    data.client = false;
     this.userData[id] = data;
     this.updateUserData();
 
@@ -122,9 +118,21 @@ user-card.sending.completed {
   }
 
   // Triggered via main.js to avoid race conditions
-  clearNotifications(id) {
-    this.userData[id].client = false;
-    this.userData[id] = Object.assign({}, this.userData[id]);
+  clearNotifications(id = null) {
+    if (id) {
+      this.userData[id].client = false;
+      this.userData[id].notifications = 0;
+      this.userData[id] = Object.assign({}, this.userData[id]);
+    } else {
+      const data = {};
+      Object.keys(this.userData).forEach(userId => {
+        const user = this.userData[userId];
+        user.notifications = 0;
+        user.client = false;
+        data[userId] = user;
+      });
+      this.userData = structuredClone(data);
+    }
     this.updateUserData();
   }
 

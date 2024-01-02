@@ -397,6 +397,7 @@ class Notifications {
         ids = Array.isArray(ids) ? ids : [ids] ;
         console.log('Delete notifications for IDs:', ids, removeUser);
 
+        // Single user
         if (ids.length === 1) {
             const id = ids[0];
             
@@ -430,9 +431,13 @@ class Notifications {
                 });
 
                 userCardList.clearNotifications(id);
-
             }
+
+        // All users
         } else {
+
+            userCardList.clearNotifications();
+
             cache.data.links = [];
             cache.data.nodes.forEach(node => {
                 node.weight = 1;
