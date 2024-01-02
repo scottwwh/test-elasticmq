@@ -2,7 +2,34 @@ import {LitElement, html, css} from 'https://unpkg.com/lit-element@2.2.1/lit-ele
 
 export class UserCard extends LitElement {
   static styles = css`
-  
+
+  /*
+  :host:after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: attr(notifications);
+  }
+
+  /*
+  :host([client]) div {
+    background: red;
+  }
+  */
+
+  div { background: orange }
+
+  div[client="true"] {
+    background: red;
+  }
+
+  :host div:after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: attr(notifications);
+  }
+    
   p { margin: 0.5rem 0; padding: 0; }
 
   small { font-size: 50%; }
@@ -16,6 +43,8 @@ export class UserCard extends LitElement {
   static get properties() {
     return {
       data: { type: Object },
+
+      // Move to new component (UserCardBadge?)
       notifications: {
         type: String,
         reflect: true,
@@ -38,21 +67,15 @@ export class UserCard extends LitElement {
 
   constructor() {
     super();
-    this.data = null;
-    this.notifications = 0;
+    this.data = {
+      notifications: 0,
+    };
     this.notificationTime = null;
     this.notificationInterval = null;
 
     this.addEventListener('notification-request', this.handleNotificationRequest);
     this.addEventListener('transitionend', this.resetStyles);
   }
-
-  /*
-  updated(changedProperties) {
-    console.log('Changed properties:', changedProperties); // logs previous values
-    console.log(this.data); // logs current value 
-  }
-  */
 
   disconnectedCallback() {
     console.log(`Remove ${this.id}?`)
@@ -114,7 +137,10 @@ export class UserCard extends LitElement {
       firstName = names[0];
       lastName = names[1];
     }
-    return html`<p><span>${firstName}<br />${lastName}</span></p>
+    return html`<div
+        client="${this.data.client}"
+        notifications="${this.data.notifications}">${this.data.notifications}</div>
+      <p><span>${firstName}<br />${lastName}</span></p>
       <p>
         <button @click="${this.handleClear}">Clear</button>
         <button style="color: maroon" @click="${this.handleRemove}">Delete</button>

@@ -121,6 +121,10 @@ user-card.client.receiving:before {
     // New user has been added
     if (data) {
 
+      // Work-around to inject reactive property into user data to drive display
+      data.client = true;
+      // console.log('new user:', data);
+
       // Allow time for template to be re-rendered, then show new user
       setTimeout(e => {
         const el = this.shadowRoot.querySelector(`user-card[id="${id}"]`);
@@ -130,8 +134,10 @@ user-card.client.receiving:before {
     // Loading existing users during init
     } else {
       data = await API.getUser(id);
+      data.client = false;
     }
 
+    // Tweak for notification badge
     this.userData[id] = data;
     this.updateUserData();
 
@@ -148,17 +154,17 @@ user-card.client.receiving:before {
     });
   }
 
-  // TODO: Handle
-  removeUser(e) {
-    // console.log('removeUser:', e);
-
-    delete this.userData[e.target.data.id];
+  // Triggered via main.js to avoid any race conditions, since both classes share data
+  removeUser(id) {
+    delete this.userData[id];
     this.updateUserData();
   }
 
-  // TODO: Handle
-  clearNotifications(e) {
-    console.log('clearNotifications:', e);
+  // Triggered via main.js to avoid race conditions
+  clearNotifications(id) {
+    this.userData[id].client = false;
+    this.userData[id] = Object.assign({}, this.userData[id]);
+    this.updateUserData();
   }
 
   // Pre-clean since events/intervals on web component are still not perfect
@@ -177,10 +183,16 @@ user-card.client.receiving:before {
     const elSender = this.shadowRoot.querySelector(`user-card[id="${source}"]`);
     elSender.dispatchEvent(new Event('notification-request'));
 
+    // TODO: Defer this until notification is actually received?
+    //
     // Enable CSS to receive event via web socket
     const elRecipient = this.shadowRoot.querySelector(`user-card[id="${target}"]`);
     elRecipient.classList.add('receiving');
     elRecipient.classList.add(CLASS_HOT);
+
+    this.userData[target].client = true;
+    this.userData[target] = Object.assign({}, this.userData[target]);
+    this.updateUserData();
   }
 
   /**
@@ -189,18 +201,17 @@ user-card.client.receiving:before {
    * @param {*} uuid
    * @returns
    */
-  updateBadgeNotification(uuid) {
+  updateBadgeNotification(uuid, live = false) {
     const el = this.shadowRoot.querySelector(`[id="${uuid}"]`);
-    // console.log(el);
+    // console.log('update badge for:', uuid);
 
-    if (el.classList.contains(CLASS_HOT)) {
-        console.log('Client-side update')
+    if (live) {
+        // console.log('Client-side update')
         el.style = '';
-        el.notifications++;
 
-        // console.log('old:', this.userData[uuid].notifications);
-        // this.userData[uuid].notifications++;
-        // console.log('new:', this.userData[uuid].notifications);
+        this.userData[uuid].notifications++;
+        this.userData[uuid] = Object.assign({}, this.userData[uuid]);
+        this.updateUserData();
 
     } else {
         // Use for initialization, until new notifications are received via socket
@@ -217,8 +228,7 @@ user-card.client.receiving:before {
   clearBadgeNotifications(ids) {
     ids.forEach(uuid => {
       const el = this.shadowRoot.querySelector(`[id="${uuid}"]`);
-      el.notifications = 0;
-      el.classList.remove('client');
+      el.classList.remove(CLASS_HOT);
       el.style = ``;
     });
   }
@@ -227,8 +237,7 @@ user-card.client.receiving:before {
     return html`<p>These are the current users:</p>
       ${this.users.map(user => html`<user-card
         .data=${user}
-        @user-remove="${this.removeUser}"
-        @notification-clear="${this.clearNotifications}"
+        .notifications=${user.notifications}
         id="${user.id}"></user-card>`
       )}`;
   }

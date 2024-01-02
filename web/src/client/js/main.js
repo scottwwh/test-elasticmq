@@ -85,7 +85,7 @@ async function initWebSocket() {
         const messageBody = JSON.parse(webSocketMessage.data);
         if (messageBody.type === 'notification') {
             // console.log('Notification:', messageBody);
-            userCardList.updateBadgeNotification(messageBody.id);
+            userCardList.updateBadgeNotification(messageBody.id, true);
         } else {
             console.log('Unknown message type', messageBody);
         }
@@ -408,6 +408,11 @@ class Notifications {
                 cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id && link.source !== id);
                 });
+                
+                userCardList.removeUser(id)
+
+                // Update cache from component data
+                cache.data.userIds = userCardList.users;
 
                 updateDataNodes();
             } else {
@@ -423,6 +428,9 @@ class Notifications {
                 cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id);
                 });
+
+                userCardList.clearNotifications(id);
+
             }
         } else {
             cache.data.links = [];
