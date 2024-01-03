@@ -84,17 +84,23 @@ function update(data) {
   nodes
     .data(data.nodes)
     .enter().append("circle")
-      .attr("cx", width)
       .attr("r", 10)
-      .style("fill", "#ddd")
+      .style("fill", "orange")
+      .style("opacity", 0)
+      .attr("cy", height - 30)
     // Applies to both links and links.enter()
     .merge(nodes)
-      .attr("cy", height - 30)
-      .transition()
       .attr("cx", function(d){ return x(d.name)})
+      .transition()
+      .style("fill", "#ddd")
+      .style("opacity", 1)
       .attr("r", function(d){ return d.weight * 5 + 5})
 
-  nodes.exit().remove();
+  nodes
+    .exit()
+    .transition()
+    .style("opacity", 0)
+    .remove();
   
   // TODO: Combine with nodes
   //
@@ -124,11 +130,17 @@ function update(data) {
 
         return elText;
       })
+      .style("opacity", 0)
     .merge(labels)
       .transition()
+      .style("opacity", 1)
       .attr("transform", function(d) { return `translate(${x(d.name)} ${height})` });
 
-  labels.exit().remove();
+  labels
+    .exit()
+    .transition()
+    .style("opacity", 0)
+    .remove();
 
 
   // Add hash map between IDs and their nodes
@@ -161,7 +173,11 @@ function update(data) {
     .merge(links)
       .attr("stroke", function(d) {
         // Check old data for element for update based on weight
-        if (previousData.get(this) < d.weight) {
+        const weightOld = previousData.get(this);
+        if (weightOld < d.weight
+            || typeof weightOld === 'undefined'
+            )
+        {
           return "#f00";
         } else {
           return "#ddd";
