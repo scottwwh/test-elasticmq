@@ -19,6 +19,41 @@ header h1 {
     padding: 0 0 1rem 0;
 }
 
+
+/* Status */
+
+nav#status {
+    position: relative;
+    padding-right: 1rem;
+    width: 5rem;
+    float: right;
+}
+
+nav#status:after {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    display: block;
+    content: '';
+    height: 10px;
+    width: 10px;
+    border-radius: 5px;
+    background-color: maroon;
+}
+
+nav#status ul {
+    margin: 0 0 0 2rem;
+    padding: 0;
+    color: maroon;
+    font-size: 0.75rem;
+}
+
+nav#status li[active] {
+    color: green;
+}
+
+
+
 article {
     margin-top: 1rem;
 }
@@ -38,10 +73,7 @@ article {
     display: none;
 }
 
-/* user-card-list {
-    display: block;
-    border: 1px solid orange;
-} */
+
 
 #my_dataviz {
     border: 2px dotted orange;

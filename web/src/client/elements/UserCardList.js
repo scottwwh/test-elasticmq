@@ -70,6 +70,13 @@ user-card.sending.completed {
     this.usersInitialized = 0;
   }
 
+  toggleStyle() {
+    const els = [...this.shadowRoot.querySelectorAll('user-card')];
+    els.forEach(el => {
+        el.toggleStyle();
+    });
+  }
+
   /*
   updated(changedProperties) {
     console.log('Changed properties:', changedProperties); // logs previous values

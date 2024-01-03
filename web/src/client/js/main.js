@@ -20,6 +20,15 @@ function updateDataNodes() {
 
 async function init(e) {
 
+    // Simple status display
+    API.getHealth()
+        .then(data => {
+            // TODO: Move to custom element, and modify app logic based on systems being active or not
+            const el = document.createElement('ul');
+            el.innerHTML = data.systems.map(system => `<li ${system.active ? `active` : ``}>${system.id}</li>` ).join('');
+            document.querySelector('#status details').appendChild(el);
+        });
+
     cache = new Cache();
 
     const userData = initUsers();
@@ -65,10 +74,7 @@ async function init(e) {
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
     document.querySelector('button.clear-notifications').addEventListener('click', clearNotifications);
     document.querySelector('button.modify-notifications').addEventListener('click', e => {
-        const els = [...document.querySelectorAll('user-card')];
-        els.forEach(el => {
-            el.classList.toggle(CLASS_HOT);
-        });
+        userCardList.toggleStyle();
     });
 
     await initWebSocket();

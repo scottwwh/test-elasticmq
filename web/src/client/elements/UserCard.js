@@ -67,26 +67,7 @@ export class UserCard extends LitElement {
 
   static get properties() {
     return {
-      data: { type: Object },
-
-      // Move to new component (UserCardBadge?)
-      notifications: {
-        type: String,
-        reflect: true,
-        converter: {
-          toAttribute: value => {
-            const max = 9;
-            const num = parseInt(value);
-            if (num === 0) {
-              return 0;
-            } else if (num > max) {
-              return '..';
-            } else {
-              return value;
-            }
-          }
-        }
-      }
+      data: { type: Object }
     };
   }
 
@@ -145,12 +126,17 @@ export class UserCard extends LitElement {
   }
 
   handleClear(e) {
-    this.notifications = 0;
     this.dispatchCustomEvent('notification-clear');
   }
 
   handleRemove(e) {
     this.dispatchCustomEvent('user-remove');
+  }
+
+  toggleStyle() {
+    const data = this.data;
+    data.client = !this.data.client;
+    this.data = Object.assign({}, data);
   }
 
   render() {
