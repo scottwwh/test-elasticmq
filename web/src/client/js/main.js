@@ -1,5 +1,7 @@
 
 import { UserCardList } from './../elements/UserCardList.js';
+import { HealthStatus } from './../elements/HealthStatus.js';
+
 import { update } from './arc.js';
 import API from './API.js';
 import Cache from './Cache.js';
@@ -23,10 +25,9 @@ async function init(e) {
     // Simple status display
     API.getHealth()
         .then(data => {
-            // TODO: Move to custom element, and modify app logic based on systems being active or not
-            const el = document.createElement('ul');
-            el.innerHTML = data.systems.map(system => `<li ${system.active ? `active` : ``}>${system.id}</li>` ).join('');
-            document.querySelector('#status details').appendChild(el);
+            const el = document.createElement('health-status');
+            el.data = data;
+            document.querySelector('header #status').prepend(el);
         });
 
     cache = new Cache();
