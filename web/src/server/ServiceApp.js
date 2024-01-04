@@ -249,6 +249,7 @@ class ServiceApp {
     }
 
     async clearNotifications(id) {
+        console.log(`Clear notifications for ${id}`);
         try {
             // This seems very wasteful, because the same thing is happening in ProcessorApp?
             const path = this.dataRoot + `${id}.json`;
@@ -273,7 +274,12 @@ class ServiceApp {
             return payload;
       
         } catch (err) {
-          throw err;
+
+            // TODO: Clean this up because mass deletions are slow as molasses
+            console.log('Error:', err);
+            return {
+                notifications: 0
+            }
         }
     }
 }

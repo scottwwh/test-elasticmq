@@ -1,81 +1,60 @@
 
-import { UserCard } from './../elements/UserCard.js';
+import { UserCardList } from './../elements/UserCardList.js';
+import { HealthStatus } from './../elements/HealthStatus.js';
+
 import { update } from './arc.js';
+import API from './API.js';
+import Cache from './Cache.js';
 
-let users = [];
+let cache = null;
+let userCardList = new UserCardList();
 
-// Stringified version of D3 file
-const data = {
-    // { id, name, weight }
-    nodes: [],
-
-    // { source, target, weight }
-    links: [],
-};
-
-
-// TODO: Integrate this
-function sortByName(a, b) {
-    if (a.name < b.name) {
-        return -1;
-    }
-
-    if (a.name > b.name) {
-        return 1;
-    }
-
-    return 0;
-}
-  
-
-const userMap = {};
-
-function generateUserMap() {
-    data.nodes.forEach((user, i) => {
-        userMap[user.id] = i;
+// TODO: Refactor this into Cache as a getter
+function updateDataNodes() {
+    cache.data.nodes = userCardList.users.map((user, i) => {
+        return {
+            id: user.id,
+            name: user.name,
+            weight: 1,
+        }
     });
 }
 
 async function init(e) {
 
-    data.nodes = [];
-    data.links = [];
-
-    const users = initUsers();
-    users.then(res => {
-
-        // Update data for D3
-        data.nodes = res.map((user, i) => {
-            return {
-                id: user.id,
-                name: user.name,
-                weight: 1,
-            }
+    // Simple status display
+    API.getHealth()
+        .then(data => {
+            const el = document.createElement('health-status');
+            el.data = data;
+            document.querySelector('header #status').prepend(el);
         });
-        generateUserMap();
 
+    cache = new Cache();
+
+    const userData = initUsers();
+    userData.then(async res => {
+
+        // TODO: Considering deferring this until all user cards have been loaded (since this will impact the count)
+        document.querySelector('button.send-notification-random').disabled = false;
+
+        // Update cache from component data
+        cache.data.userIds = userCardList.users;
+
+        updateDataNodes();
         updateBadges();
 
-        // Load initial visualization data
-        fetch(`/api/notifications/`)
-            .catch(err => console.error(err))
-            .then(response => {
-                if (!response.ok) {
-                    throw Error("URL not found");
-                } else {
-                    return response.json();
-                }
-            })
-            .then(data => {
+        const notificationData = await API.getNotifications();
+        notificationsHistory = notificationData.notifications;
 
-                notificationsHistory = data.notifications;
-
-                // TODO: Figure out why this leads to mouseover not working until an update?
-                visualizationUpdate();
-            });
+        visualizationUpdate();
     });
+    
+    userCardList.addEventListener('notification-clear', clearNotifications);
+    userCardList.addEventListener('user-remove', removeUser);
 
     const elCards = document.querySelector('.user-cards');
+    elCards.appendChild(userCardList);
     elCards.addEventListener('transitionend', e => {
         // Avoid bubbling events from user-card elements
         if (!e.target.classList.contains('user-cards'))
@@ -96,10 +75,7 @@ async function init(e) {
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
     document.querySelector('button.clear-notifications').addEventListener('click', clearNotifications);
     document.querySelector('button.modify-notifications').addEventListener('click', e => {
-        const els = [...document.querySelectorAll('user-card')];
-        els.forEach(el => {
-            el.classList.toggle(CLASS_HOT);
-        });
+        userCardList.toggleStyle();
     });
 
     await initWebSocket();
@@ -116,7 +92,7 @@ async function initWebSocket() {
         const messageBody = JSON.parse(webSocketMessage.data);
         if (messageBody.type === 'notification') {
             // console.log('Notification:', messageBody);
-            updateBadgeNotification(messageBody.id);
+            userCardList.updateBadgeNotification(messageBody.id, true);
         } else {
             console.log('Unknown message type', messageBody);
         }
@@ -160,25 +136,29 @@ function addUser(e) {
             }
         })
         .then(res => {
-            const user = res.data;
-            // console.log('User created?', user);
+            const userData = res.data;
+            // console.log('User created?', userData);
 
-            addUserCard(user.id);
+            userCardList.addUser(userData.id, userData);
 
-            data.nodes.push(user);
+            updateDataNodes();
 
-            // Update map
-            generateUserMap();
+            // Update cache from component data
+            cache.data.userIds = userCardList.users;
 
-            update(data);
+            document.querySelector('button.send-notification-random').disabled = false;
 
-            console.log(data);
+            update(cache.data);
+            // console.log(cache.data);
         });
 }
 
 function removeUser(e) {
-    const id = e.target.getAttribute('user-id');
+    const origin = e.composedPath()[0];
+    const id = origin.getAttribute('id');
+    // console.log(e, id);
 
+    // return;
     fetch(`/api/users/${id}`, {
             method: 'DELETE',
             headers: {
@@ -197,19 +177,14 @@ function removeUser(e) {
         .then(res => {
             console.log('Response:', res);
             if (res.status === 'ACK') {
-                document.querySelector('.user-cards').removeChild(e.target);
-
-                // Regenerate original list
-                users = [...document.querySelectorAll('user-card')];
-
                 try {
                     // TODO: Verify that deleting this node also deletes any associated links?
                     Notifications.clearNotificationsAndUpdateData(id, true);
             
                     // Update viz
-                    update(data);
+                    update(cache.data);
 
-                    console.log(data);
+                    console.log(cache.data);
                 } catch (err) {
                     console.log('Error deleting user:', err);            
                 }            
@@ -221,72 +196,33 @@ function removeUser(e) {
  * Retrieve current users to generate cards
  */ 
 async function initUsers() {
-    const data = await fetch(`/api/users/`)
-        .catch(err => console.error(err))
-        .then(response => {
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                return response.json();
-            }
-        });
+    const ids = await API.getUsers();
 
-    const users = [];
-    data.forEach(id => {
-        users.push(addUserCard(id));
+    // This is duplicating logic in UserCardList!
+    const userRequests = [];
+    ids.forEach(id => {
+        userRequests.push(userCardList.addUser(id));
+
+        // Update cache
+        cache.data.userIds = userCardList.users;
     });
 
-    return Promise.all(users);
+    return Promise.all(userRequests);
 }
 
-// This is almost entirely useless, because we've already made the request in addUser() ??
-function addUserCard(id) {
-    document.querySelector('button.send-notification-random').disabled = false;
-
-    const el = document.createElement('user-card');
-    el.setAttribute('user-id', id);
-    el.addEventListener('notification-clear', clearNotifications);
-    el.addEventListener('user-remove', removeUser);
-
-    users.push(el);
-    document.querySelector('.user-cards').appendChild(el);
-
-    // TODO: Remove this entirely (we're already getting initial payload at init or when adding users
-    return fetch(`/api/users/${id}`)
-        .catch(err => console.error(err))
-        .then(response => {
-            // console.log('User data:', response);
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                return response.json();
-            }
-        })
-        .then(data => {
-            
-            // Initialize from server as base number for subsequent updates
-            el.notifications = data.notifications;            
-
-            // Update card with name - this seems a bit backwards for new users?
-            el.setAttribute('name', data.name);
-
-            return data;
-        });
-}
-
-function generateNotificationData(users, total) {
+function generateNotificationData(userIds, total) {
     const notificationData = [];
     for (var i = 0; i < total; i++) {
         // Sender
-        const from = Math.floor(Math.random() * users.length);
+        const source = Math.floor(Math.random() * userIds.length);
 
         // Recipient
-        let to = Math.floor(Math.random() * users.length);
-        while (to === from) {
-            to = Math.floor(Math.random() * users.length);
+        let target = Math.floor(Math.random() * userIds.length);
+        while (target === source) {
+            target = Math.floor(Math.random() * userIds.length);
         }
 
-        notificationData.push({ from, to });
+        notificationData.push({ source: userIds[source].id, target: userIds[target].id });
     }
     return notificationData;
 }
@@ -296,17 +232,14 @@ function sendNotificationsRandom(e) {
     const button = e.currentTarget;
     button.disabled = true;
 
-    if (users.length === 0) return;
+    if (cache.data.userIds.length === 0) return;
 
-    // Pre-clean since events/intervals on web component are still not perfect
-    users.forEach(el => {
-        el.classList.remove('sending', 'receiving', 'completed');
-    });
+    userCardList.resetUserCards();
 
     const intervalTotal = Math.floor(Math.random() * 40) + 10;
     // console.log(`Send ${intervalTotal} notifications`);
 
-    const notificationData = generateNotificationData(users, intervalTotal);
+    const notificationData = generateNotificationData(cache.data.userIds, intervalTotal);
     // console.log(notificationData);
 
     let intervalCount = 0;
@@ -368,11 +301,11 @@ function visualizationUpdate() {
     })
 
     // Convert object into array for D3
-    data.links = Object.keys(notificationsMap).map(id => {
+    cache.data.links = Object.keys(notificationsMap).map(id => {
         return notificationsMap[id];
     });
     
-    update(data);
+    update(cache.data);
 }
 
 
@@ -388,37 +321,21 @@ const CLASS_HOT = 'client';
  */
 // TODO: Rename to sendMessage
 function sendNotification(contacts) {
-    const elSender = users[contacts.from];
+    const { source, target} = contacts;
 
-    const uuidSender = elSender.getAttribute('user-id');
-    data.nodes[userMap[uuidSender]].weight += 0.025;
+    cache.data.nodes[userCardList.userMap[source]].weight += 0.025;
+    cache.data.nodes[userCardList.userMap[target]].weight += 0.025;
 
-    // Enables CSS for client-side notification count
-    const elRecipient = users[contacts.to];
-    elRecipient.classList.add('receiving');
-    elRecipient.classList.add(CLASS_HOT);
-
-    // TODO: Adapt to send UUIDs for sender/receiver
-    const uuidRecipient = elRecipient.getAttribute('user-id');
-    data.nodes[userMap[uuidRecipient]].weight += 0.025;
-
-    // TODO: Decouple sender/receiver transitions
-    //
-    // Trigger CSS transition
-    elSender.dispatchEvent(new Event('notification-request'));
+    userCardList.showNotification(contacts);
 
     const payload = {
         id: null,
-        source: uuidSender,
-        target: uuidRecipient,
+        source,
+        target,
         content: `Foo bar ${Math.random() * 1000}`
     };
 
-    // Update data for D3
-    visualizationAddLink({ source: uuidSender, target: uuidRecipient });
-    visualizationUpdate();
-    
-    fetch(`/api/users/${uuidSender}/messages`, {
+    fetch(`/api/users/${source}/messages`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -437,53 +354,45 @@ function sendNotification(contacts) {
         .then(data => {
             console.log('Notification sent:', data);
         });
+
+    // Update data for D3
+    visualizationAddLink({ source, target });
+    visualizationUpdate();    
 }
 
 // TODO: Distinguish between this and _clearNotifications_ which needs to exist
 function clearNotifications(e) {
-    console.log('Clear notifications');
+    // Ref: https://lit.dev/docs/v2/components/events/#shadowdom-retargeting
+    const origin = e.composedPath()[0];
+    let ids = [];
 
+    // TODO: Replace calls to get attribute with IDs (which is the end result)
+    //
     // Glob all requests if request comes from outside of a user card
     const USER_CARD = 'user-card';
-    const els = (e.currentTarget.nodeName.toLowerCase() === USER_CARD) ? [e.currentTarget] : [...document.querySelectorAll('user-card')] ;
-    const ids = els.map(el => el.getAttribute('user-id'));
+    if (origin.nodeName.toLowerCase() === USER_CARD) {
+        ids = [origin.getAttribute('id')];
+    } else {
+        // Actually full data
+        ids = cache.data.userIds.map(el => el.id)
+    }
+
     if (ids.length === 0) {
         console.log('No users, exiting..');
         return;
     }
 
-    fetch(`/api/notifications/${ids}`, {
-            method: 'DELETE',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-        })
-        .catch(err => console.error(err))
-        .then(response => {
-            if (!response.ok) {
-                throw Error("URL not found");
-            } else {
-                return response.json();
-            }
-        })
+    API.deleteNotifications(ids)
         .then(data => {
-            console.log('Notifications cleared?', data, els);
+            console.log('Notifications cleared?', data, ids);
         });
-    
 
     Notifications.clearNotificationsAndUpdateData(ids);
     
     // Update viz
-    update(data);
+    update(cache.data);
 
-
-    // Reset element
-    els.forEach(el => {
-        el.notifications = 0;
-        el.classList.remove('client');
-        el.style = ``;
-    })
+    userCardList.clearBadgeNotifications(ids);
 }
 
 
@@ -495,6 +404,7 @@ class Notifications {
         ids = Array.isArray(ids) ? ids : [ids] ;
         console.log('Delete notifications for IDs:', ids, removeUser);
 
+        // Single user
         if (ids.length === 1) {
             const id = ids[0];
             
@@ -503,19 +413,19 @@ class Notifications {
                     return (notification.target !== id && notification.source !== id);
                 });
     
-                data.links = data.links.filter(link => {
+                cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id && link.source !== id);
                 });
+                
+                userCardList.removeUser(id)
 
-                const index = userMap[id];
-                console.log(`Remove user ${data.nodes[index].name} from index`, index);
+                // Update cache from component data
+                cache.data.userIds = userCardList.users;
 
-                data.nodes.splice(index, 1);
-
-                delete userMap[id];
-                generateUserMap();
+                updateDataNodes();
             } else {
-                data.nodes[userMap[id]].weight = 1;
+                // console.log('User map:', userCardList.userMap);
+                cache.data.nodes[userCardList.userMap[id]].weight = 1;
 
                 notificationsHistory = notificationsHistory.filter(notification => {
                     return (notification.target !== id);
@@ -523,14 +433,20 @@ class Notifications {
 
                 // TODO: Confirm whether the following are derived data
                 // and so redundant?
-                data.links = data.links.filter(link => {
+                cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id);
                 });
+
+                userCardList.clearNotifications(id);
             }
+
+        // All users
         } else {
-            data.links = [];
-    
-            data.nodes.forEach(node => {
+
+            userCardList.clearNotifications();
+
+            cache.data.links = [];
+            cache.data.nodes.forEach(node => {
                 node.weight = 1;
             });
     
@@ -546,44 +462,21 @@ class Notifications {
  * @returns 
  */
 function updateBadges() {
-    // console.log('Udpate badges for', users.length, 'users');
-    if (users.length === 0) return ;
+    if (userCardList.users.length === 0) return ;
+    // console.log('Udpate badges for', cache.data.userIds.length, 'users');
 
     const updates = [];
-    for (var i = 0; i < users.length; i++) {
-        const uuid = users[i].getAttribute('user-id');
-        const data = updateBadgeNotification(uuid);
+    for (var i = 0; i < cache.data.userIds.length; i++) {
+        const uuid = cache.data.userIds[i].id;
+        const data = userCardList.updateBadgeNotification(uuid);
         updates.push(data);
     }
 
     // TODO: What should response be?
     Promise.all(updates).then(response => {
-        // console.log('Completed all updates:', response);
+        // console.log('Updated all badges:', response);
     });
 }
 
-/**
- * Update badge notification based on JSON
- * 
- * @param {*} uuid
- * @returns
- */
-function updateBadgeNotification(uuid) {
-    const el = document.querySelector(`[user-id="${uuid}"]`);
-    // console.log(el);
-
-    if (el.classList.contains(CLASS_HOT)) {
-        console.log('Client-side update')
-        el.style = '';
-        el.notifications++;
-
-    } else {
-        // Use for initialization, until new notifications are received via socket
-        el.style = `--url: url('../../cdn/${uuid}.svg?v=${new Date().getTime()}')`;
-    }
-    
-    // Flip the badge
-    el.classList.toggle('updated');
-}
 
 window.addEventListener('DOMContentLoaded', init);

@@ -19,6 +19,9 @@ app.use(serve(webRoot));
 
 router.get('/', list)
 
+  // General
+  .get('/api/health', getHealth)
+
   // Users
   .get('/api/users/', getAllUsers)
   .post('/api/users/', addUser)
@@ -39,6 +42,19 @@ async function list(ctx) {
   ctx.response.body = fs.readFileSync(file);
 };
 
+
+/**
+ * Healthj
+ */
+
+async function getHealth(ctx) {
+  ctx.response.body = {
+    systems: [
+      { id: "service", active: true },
+      { id: "processor", active: false },
+    ]
+  };
+}
 
 /**
  * Users
