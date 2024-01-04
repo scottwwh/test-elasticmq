@@ -19,6 +19,17 @@ header h1 {
     padding: 0 0 1rem 0;
 }
 
+
+
+nav#status {
+    position: relative;
+    float: right;
+}
+
+
+
+
+
 article {
     margin-top: 1rem;
 }
@@ -38,10 +49,7 @@ article {
     display: none;
 }
 
-/* user-card-list {
-    display: block;
-    border: 1px solid orange;
-} */
+
 
 #my_dataviz {
     border: 2px dotted orange;

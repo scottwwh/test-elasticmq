@@ -1,5 +1,7 @@
 
 import { UserCardList } from './../elements/UserCardList.js';
+import { HealthStatus } from './../elements/HealthStatus.js';
+
 import { update } from './arc.js';
 import API from './API.js';
 import Cache from './Cache.js';
@@ -19,6 +21,14 @@ function updateDataNodes() {
 }
 
 async function init(e) {
+
+    // Simple status display
+    API.getHealth()
+        .then(data => {
+            const el = document.createElement('health-status');
+            el.data = data;
+            document.querySelector('header #status').prepend(el);
+        });
 
     cache = new Cache();
 
@@ -65,10 +75,7 @@ async function init(e) {
     document.querySelector('button.send-notification-random').addEventListener('click', sendNotificationsRandom);
     document.querySelector('button.clear-notifications').addEventListener('click', clearNotifications);
     document.querySelector('button.modify-notifications').addEventListener('click', e => {
-        const els = [...document.querySelectorAll('user-card')];
-        els.forEach(el => {
-            el.classList.toggle(CLASS_HOT);
-        });
+        userCardList.toggleStyle();
     });
 
     await initWebSocket();
@@ -85,7 +92,7 @@ async function initWebSocket() {
         const messageBody = JSON.parse(webSocketMessage.data);
         if (messageBody.type === 'notification') {
             // console.log('Notification:', messageBody);
-            userCardList.updateBadgeNotification(messageBody.id);
+            userCardList.updateBadgeNotification(messageBody.id, true);
         } else {
             console.log('Unknown message type', messageBody);
         }
@@ -397,6 +404,7 @@ class Notifications {
         ids = Array.isArray(ids) ? ids : [ids] ;
         console.log('Delete notifications for IDs:', ids, removeUser);
 
+        // Single user
         if (ids.length === 1) {
             const id = ids[0];
             
@@ -408,6 +416,11 @@ class Notifications {
                 cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id && link.source !== id);
                 });
+                
+                userCardList.removeUser(id)
+
+                // Update cache from component data
+                cache.data.userIds = userCardList.users;
 
                 updateDataNodes();
             } else {
@@ -423,8 +436,15 @@ class Notifications {
                 cache.data.links = cache.data.links.filter(link => {
                     return (link.target !== id);
                 });
+
+                userCardList.clearNotifications(id);
             }
+
+        // All users
         } else {
+
+            userCardList.clearNotifications();
+
             cache.data.links = [];
             cache.data.nodes.forEach(node => {
                 node.weight = 1;

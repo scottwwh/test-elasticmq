@@ -52,45 +52,6 @@ user-card.sending.completed {
   border-color: #aaa;
 }
 
-/* SVGs badges */
-user-card:before {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  content: " ";
-  background-repeat: no-repeat;
-  background-image: var(--url);
-  background-size: auto auto;
-  width: 25px;
-  height: 25px;
-  transition: all 0.5s, background-color 0.25s;
-
-  border-radius: 12.5px;
-}
-
-/* Pure CSS badges */
-user-card.client:before {
-  content: attr(notifications);
-  background-color: maroon;
-  background-image: none;
-
-  color: #fff;
-  font-family: Arial;
-  font-size: 0.95rem;
-  font-weight: bold;
-  line-height: 1.6rem; /* Approximating the SVG */
-  text-align: center;
-  vertical-align: baseline;
-}
-
-user-card.updated:before {
-  transform: rotateY(359deg);
-}
-
-user-card.client.receiving:before {
-  background-color: red;
-}
-
   `;
 
   static get properties() {
@@ -107,6 +68,13 @@ user-card.client.receiving:before {
     this.userData = {};
     this.userMap = {};
     this.usersInitialized = 0;
+  }
+
+  toggleStyle() {
+    const els = [...this.shadowRoot.querySelectorAll('user-card')];
+    els.forEach(el => {
+        el.toggleStyle();
+    });
   }
 
   /*
@@ -132,6 +100,8 @@ user-card.client.receiving:before {
       data = await API.getUser(id);
     }
 
+    // Inject reactive property to drive notification badge
+    data.client = false;
     this.userData[id] = data;
     this.updateUserData();
 
@@ -148,17 +118,29 @@ user-card.client.receiving:before {
     });
   }
 
-  // TODO: Handle
-  removeUser(e) {
-    // console.log('removeUser:', e);
-
-    delete this.userData[e.target.data.id];
+  // Triggered via main.js to avoid any race conditions, since both classes share data
+  removeUser(id) {
+    delete this.userData[id];
     this.updateUserData();
   }
 
-  // TODO: Handle
-  clearNotifications(e) {
-    console.log('clearNotifications:', e);
+  // Triggered via main.js to avoid race conditions
+  clearNotifications(id = null) {
+    if (id) {
+      this.userData[id].client = false;
+      this.userData[id].notifications = 0;
+      this.userData[id] = Object.assign({}, this.userData[id]);
+    } else {
+      const data = {};
+      Object.keys(this.userData).forEach(userId => {
+        const user = this.userData[userId];
+        user.notifications = 0;
+        user.client = false;
+        data[userId] = user;
+      });
+      this.userData = structuredClone(data);
+    }
+    this.updateUserData();
   }
 
   // Pre-clean since events/intervals on web component are still not perfect
@@ -177,10 +159,16 @@ user-card.client.receiving:before {
     const elSender = this.shadowRoot.querySelector(`user-card[id="${source}"]`);
     elSender.dispatchEvent(new Event('notification-request'));
 
+    // TODO: Defer this until notification is actually received?
+    //
     // Enable CSS to receive event via web socket
     const elRecipient = this.shadowRoot.querySelector(`user-card[id="${target}"]`);
     elRecipient.classList.add('receiving');
     elRecipient.classList.add(CLASS_HOT);
+
+    this.userData[target].client = true;
+    this.userData[target] = Object.assign({}, this.userData[target]);
+    this.updateUserData();
   }
 
   /**
@@ -189,18 +177,17 @@ user-card.client.receiving:before {
    * @param {*} uuid
    * @returns
    */
-  updateBadgeNotification(uuid) {
+  updateBadgeNotification(uuid, live = false) {
     const el = this.shadowRoot.querySelector(`[id="${uuid}"]`);
-    // console.log(el);
+    // console.log('update badge for:', uuid);
 
-    if (el.classList.contains(CLASS_HOT)) {
-        console.log('Client-side update')
+    if (live) {
+        // console.log('Client-side update')
         el.style = '';
-        el.notifications++;
 
-        // console.log('old:', this.userData[uuid].notifications);
-        // this.userData[uuid].notifications++;
-        // console.log('new:', this.userData[uuid].notifications);
+        this.userData[uuid].notifications++;
+        this.userData[uuid] = Object.assign({}, this.userData[uuid]);
+        this.updateUserData();
 
     } else {
         // Use for initialization, until new notifications are received via socket
@@ -217,8 +204,7 @@ user-card.client.receiving:before {
   clearBadgeNotifications(ids) {
     ids.forEach(uuid => {
       const el = this.shadowRoot.querySelector(`[id="${uuid}"]`);
-      el.notifications = 0;
-      el.classList.remove('client');
+      el.classList.remove(CLASS_HOT);
       el.style = ``;
     });
   }
@@ -227,8 +213,6 @@ user-card.client.receiving:before {
     return html`<p>These are the current users:</p>
       ${this.users.map(user => html`<user-card
         .data=${user}
-        @user-remove="${this.removeUser}"
-        @notification-clear="${this.clearNotifications}"
         id="${user.id}"></user-card>`
       )}`;
   }
